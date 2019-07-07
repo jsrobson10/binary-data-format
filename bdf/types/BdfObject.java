@@ -18,16 +18,24 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject(BdfDatabase data)
 	{
-		this();
+		// Is the database length greater than 1
+		if(data.length() > 1)
+		{
+			// Get the type and database values
+			type = data.getAt(0, 1).getByte(0);
+			database = data.getAt(1, data.length());
+			
+			// Set the object variable if there is an object specified
+			if(type == BdfTypes.STRING) object = new String(database.getBytes(), StandardCharsets.UTF_8);
+			if(type == BdfTypes.ARRAY) object = new BdfArray(database);
+			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
+		}
 		
-		// Get the type and database values
-		type = data.getAt(0, 1).getByte(0);
-		database = data.getAt(1, data.length());
-		
-		// Set the object variable if there is an object specified
-		if(type == BdfTypes.STRING) object = new String(database.getBytes(), StandardCharsets.UTF_8);
-		if(type == BdfTypes.ARRAY) object = new BdfArray(database);
-		if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
+		else
+		{
+			// Create a new database
+			database = new BdfDatabase();
+		}
 	}
 	
 	public BdfObject() {

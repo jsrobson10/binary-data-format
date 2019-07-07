@@ -1,8 +1,7 @@
 package bdf;
 
-import bdf.data.BdfDatabase;
+import bdf.file.BdfFileManager;
 import bdf.types.BdfArray;
-import bdf.types.BdfNamedList;
 import bdf.types.BdfObject;
 
 public class Main {
@@ -10,18 +9,17 @@ public class Main {
 	public static void main(String[] args)
 	{
 		
-		BdfObject object = BdfObject.getNew(new BdfNamedList());
+		BdfFileManager file = new BdfFileManager("db.bdf");
 		
-		for(int i=0;i<1000;i++)
-		{
-			object.getNamedList().set(Integer.toString(i), BdfObject.getNew("value + 1 = "+Integer.toString(i+1)));
-		}
 		
-		byte[] database = object.serialize().getBytes();
-		BdfObject object2 = new BdfObject(new BdfDatabase(database));
+		file.setArray(new BdfArray());
+		file.getArray().add(BdfObject.getNew("Hello"));
+		System.out.println(file.getArray().get(0).getString());
+		file.saveDatabase();
 		
-		System.out.println("value = \""+ object2.getNamedList().get("20").getString()+"\"");
-		System.out.println(object2.getNamedList().contains("54"));
+		
+		BdfFileManager file2 = new BdfFileManager("db.bdf");
+		System.out.println(file2.getArray().get(0).getString());
 		
 	}
 
