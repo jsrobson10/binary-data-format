@@ -1,5 +1,6 @@
 package bdf.types;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import bdf.data.BdfDatabase;
@@ -70,6 +71,29 @@ public class BdfNamedList implements IBdfType
 		
 		// Send back the serialized data
 		return serialized;
+	}
+	
+	@Override
+	public String serializeHumanReadable()
+	{
+		String data = "{";
+		
+		for(int i=0;i<elements.size();i++)
+		{
+			Element e = elements.get(i);
+			
+			data += "\"";
+			data += (new String(e.key, StandardCharsets.UTF_8)).replaceAll("\"", "\\\"");
+			data += "\": ";
+			data += e.object.serializeHumanReadable();
+			
+			if(elements.size() > i+1)
+			{
+				data += ", ";
+			}
+		}
+		
+		return data + "}";
 	}
 	
 	public BdfObject get(String key)
@@ -169,6 +193,23 @@ public class BdfNamedList implements IBdfType
 		
 		// Send back false if nothing was found
 		return false;
+	}
+	
+	public String[] getKeys()
+	{
+		// Get the keys to send back
+		String[] keys = new String[elements.size()];
+		
+		// Loop over the elements
+		for(int i=0;i<elements.size();i++)
+		{
+			// Get the element
+			Element e = elements.get(i);
+			keys[i] = new String(e.key, StandardCharsets.UTF_8);
+		}
+		
+		// Return the list of keys as strings
+		return keys;
 	}
 	
 	public int size() {

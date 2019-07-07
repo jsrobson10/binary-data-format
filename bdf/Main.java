@@ -2,25 +2,32 @@ package bdf;
 
 import bdf.file.BdfFileManager;
 import bdf.types.BdfArray;
+import bdf.types.BdfNamedList;
 import bdf.types.BdfObject;
 
 public class Main {
 
 	public static void main(String[] args)
 	{
+		BdfFileManager bdf = new BdfFileManager("db/file.db");
 		
-		BdfFileManager file = new BdfFileManager("test/test2/db.bdf");
+		BdfNamedList bdf_nl = new BdfNamedList();
+		bdf_nl.set("greeting", BdfObject.getNew("Hello, World!"));
+		bdf_nl.set("integer", BdfObject.getNew(21));
+		bdf_nl.set("integer", BdfObject.getNew(52));
 		
+		BdfArray bdf_array = new BdfArray();
+		bdf_array.add(BdfObject.getNew(61));
+		bdf_array.add(BdfObject.getNew(42.0d));
+		bdf_array.add(BdfObject.getNew(67F));
+		bdf_array.add(BdfObject.getNew("hello!"));
 		
-		file.setArray(new BdfArray());
-		file.getArray().add(BdfObject.getNew("Hello"));
-		System.out.println(file.getArray().get(0).getString());
-		file.saveDatabase();
+		bdf_nl.set("array", BdfObject.getNew(bdf_array));
+		bdf.setNamedList(bdf_nl);
 		
+		bdf.saveDatabase();
 		
-		BdfFileManager file2 = new BdfFileManager("test/test2/db.bdf");
-		System.out.println(file2.getArray().get(0).getString());
-		
+		System.out.println(bdf.serializeHumanReadable());
 	}
 
 }

@@ -55,6 +55,26 @@ public class BdfArray implements IBdfType
 		return serialized;
 	}
 	
+	@Override
+	public String serializeHumanReadable()
+	{
+		String data = "[";
+		
+		for(int i=0;i<elements.size();i++)
+		{
+			BdfObject o = elements.get(i);
+			
+			data += o.serializeHumanReadable();
+			
+			if(elements.size() > i+1)
+			{
+				data += ", ";
+			}
+		}
+		
+		return data + "]";
+	}
+	
 	public BdfArray add(BdfObject o)
 	{
 		// Add an element

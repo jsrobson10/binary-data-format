@@ -38,6 +38,37 @@ public class BdfObject implements IBdfType
 		}
 	}
 	
+	@Override
+	public BdfDatabase serialize()
+	{
+		if(type == BdfTypes.STRING) database = new BdfDatabase(this.getString());
+		if(type == BdfTypes.ARRAY) database = ((BdfArray)object).serialize();
+		if(type == BdfTypes.NAMED_LIST) database = ((BdfNamedList)object).serialize();
+		
+		return BdfDatabase.add(new BdfDatabase(type), database);
+	}
+	
+	public String serializeHumanReadable()
+	{
+		if(type == BdfTypes.BOOLEAN) {
+			if(this.getBoolean()) return "true";
+			else return "false";
+		}
+		
+		if(type == BdfTypes.ARRAY) return ((IBdfType)object).serializeHumanReadable();
+		if(type == BdfTypes.NAMED_LIST) return ((IBdfType)object).serializeHumanReadable();
+		if(type == BdfTypes.BYTE) return (Byte.toString(this.getByte())+"B");
+		if(type == BdfTypes.DOUBLE) return (Double.toString(this.getDouble())+"D");
+		if(type == BdfTypes.FLOAT) return (Float.toString(this.getFloat())+"F");
+		if(type == BdfTypes.INTEGER) return (Integer.toString(this.getInteger())+"I");
+		if(type == BdfTypes.LONG) return (Long.toString(this.getLong())+"L");
+		if(type == BdfTypes.SHORT) return (Short.toString(this.getShort())+"S");
+		if(type == BdfTypes.STRING) return "\""+((String)object).replaceAll("\"", "\\\"")+"\"";
+		
+		// Return null if the object is undefined
+		return "undefined";
+	}
+	
 	public BdfObject() {
 		database = new BdfDatabase();
 	}
@@ -80,16 +111,6 @@ public class BdfObject implements IBdfType
 	
 	public static BdfObject getNew(BdfNamedList v) {
 		return (new BdfObject()).setNamedList(v);
-	}
-	
-	@Override
-	public BdfDatabase serialize()
-	{
-		if(type == BdfTypes.STRING) database = new BdfDatabase(this.getString());
-		if(type == BdfTypes.ARRAY) database = ((BdfArray)object).serialize();
-		if(type == BdfTypes.NAMED_LIST) database = ((BdfNamedList)object).serialize();
-		
-		return BdfDatabase.add(new BdfDatabase(type), database);
 	}
 	
 	public byte getType() {
