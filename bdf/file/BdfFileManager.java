@@ -14,14 +14,18 @@ public class BdfFileManager extends BdfObject
 	
 	private static BdfDatabase init(String path)
 	{
-		// Get the file handler
+		// Get the file
 		File file = new File(path);
 		
-		// Create the parent directories
-		file.getParentFile().mkdirs();
+		// Does the file have read access
+		if(file.canRead())
+		{
+			// Return the files contents as a database
+			return new BdfDatabase(FileHelpers.readAllIgnoreErrors(path));
+		}
 		
-		// Return the files contents as a database
-		return new BdfDatabase(FileHelpers.readAllIgnoreErrors(path));
+		// Return an empty database if there is no read access
+		return new BdfDatabase();
 	}
 	
 	public BdfFileManager(String path) {
@@ -33,6 +37,12 @@ public class BdfFileManager extends BdfObject
 	{
 		try
 		{
+			// Get the file handler
+			File file = new File(path);
+			
+			// Create the parent directories
+			file.getParentFile().mkdirs();
+			
 			// Get the database file for output
 			FileOutputStream out = new FileOutputStream(path);
 			
