@@ -1,7 +1,7 @@
 package bdf.file;
 
+import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import bdf.data.BdfDatabase;
@@ -12,8 +12,20 @@ public class BdfFileManager extends BdfObject
 {
 	protected String path;
 	
+	private static BdfDatabase init(String path)
+	{
+		// Get the file handler
+		File file = new File(path);
+		
+		// Create the parent directories
+		file.getParentFile().mkdirs();
+		
+		// Return the files contents as a database
+		return new BdfDatabase(FileHelpers.readAllIgnoreErrors(path));
+	}
+	
 	public BdfFileManager(String path) {
-		super(new BdfDatabase(FileHelpers.readAllIgnoreErrors(path)));
+		super(init(path));
 		this.path = path;
 	}
 	

@@ -9,7 +9,7 @@ public class Main {
 	public static void main(String[] args)
 	{
 		
-		BdfFileManager file = new BdfFileManager("db.bdf");
+		BdfFileManager file = new BdfFileManager("test/test2/db.bdf");
 		
 		
 		file.setArray(new BdfArray());
@@ -18,7 +18,7 @@ public class Main {
 		file.saveDatabase();
 		
 		
-		BdfFileManager file2 = new BdfFileManager("db.bdf");
+		BdfFileManager file2 = new BdfFileManager("test/test2/db.bdf");
 		System.out.println(file2.getArray().get(0).getString());
 		
 	}
