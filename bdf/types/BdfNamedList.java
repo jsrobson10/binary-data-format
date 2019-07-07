@@ -163,6 +163,7 @@ public class BdfNamedList implements IBdfType
 				e.object = object;
 				
 				// Exit out of the function, don't add another object
+				return;
 			}
 		}
 		
