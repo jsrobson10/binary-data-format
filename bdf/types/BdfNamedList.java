@@ -82,9 +82,8 @@ public class BdfNamedList implements IBdfType
 		{
 			Element e = elements.get(i);
 			
-			data += "\"";
-			data += (new String(e.key, StandardCharsets.UTF_8)).replaceAll("\"", "\\\"");
-			data += "\": ";
+			data += DataHelpers.serializeString(new String(e.key, StandardCharsets.UTF_8));
+			data += ": ";
 			data += e.object.serializeHumanReadable();
 			
 			if(elements.size() > i+1)

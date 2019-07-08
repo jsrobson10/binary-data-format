@@ -63,7 +63,7 @@ public class BdfObject implements IBdfType
 		if(type == BdfTypes.INTEGER) return (Integer.toString(this.getInteger())+"I");
 		if(type == BdfTypes.LONG) return (Long.toString(this.getLong())+"L");
 		if(type == BdfTypes.SHORT) return (Short.toString(this.getShort())+"S");
-		if(type == BdfTypes.STRING) return "\""+((String)object).replaceAll("\"", "\\\"")+"\"";
+		if(type == BdfTypes.STRING) return DataHelpers.serializeString((String)object);
 		
 		// Return null if the object is undefined
 		return "undefined";

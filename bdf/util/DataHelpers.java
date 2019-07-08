@@ -36,4 +36,50 @@ public class DataHelpers
 		// Send back true if everything has been checked
 		return true;
 	}
+	
+	public static String replaceInString(String string, byte find, String replace)
+	{
+		// Convert the string to bytes
+		byte[] string_b = string.getBytes();
+		String string_modified = new String();
+		
+		// Loop over the string
+		for(int i=0;i<string_b.length;i++)
+		{
+			// Is the byte to find the byte at this part of the string
+			if(find == string_b[i])
+			{
+				// Add the data to replace to the string
+				string_modified += replace;
+			}
+			
+			else
+			{
+				// Add the part of the old string to the new string
+				string_modified += string.substring(i, i+1);
+			}
+		}
+		
+		// Send back the modified string
+		return string_modified;
+	}
+	
+	public static String replaceInString(String string, char find, String replace) {
+		return replaceInString(string, (byte)find, replace);
+	}
+	
+	public static String serializeString(String string)
+	{
+		// Serialize the string
+		String serialized = string;
+		
+		// Replace some parts of the string
+		serialized = replaceInString(serialized, '"', "\\\"");
+		
+		// Add quotes to the string
+		serialized = "\"" + serialized + "\"";
+		
+		// Return the serialized string
+		return serialized;
+	}
 }

@@ -15,12 +15,15 @@ public class Main {
 		bdf_nl.set("greeting", BdfObject.getNew("Hello, World!"));
 		bdf_nl.set("integer", BdfObject.getNew(21));
 		bdf_nl.set("integer", BdfObject.getNew(52));
+		bdf_nl.set("\"test\"", BdfObject.getNew((byte) 69));
 		
 		BdfArray bdf_array = new BdfArray();
 		bdf_array.add(BdfObject.getNew(61));
 		bdf_array.add(BdfObject.getNew(42.0d));
 		bdf_array.add(BdfObject.getNew(67F));
 		bdf_array.add(BdfObject.getNew("hello!"));
+		bdf_array.add(BdfObject.getNew());
+		bdf_array.add(BdfObject.getNew("\"hi\""));
 		
 		bdf_nl.set("array", BdfObject.getNew(bdf_array));
 		bdf.setNamedList(bdf_nl);
