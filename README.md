@@ -1,6 +1,6 @@
-#Binary Data Format
+# Binary Data Format
 
-###Overview:
+### Overview:
 
 Binary Data Format (or BDF) is designed to store data in a tag-like binary structure,
 like Notch's NBT format, but also open source and free like JSON. The format is
@@ -9,7 +9,7 @@ be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
 BDF allows human readable serialization to see what is going on for debugging
 purposes, but it currently can't parse the result to an object.
 
-###Datatypes:
+### Datatypes:
 
 - Boolean
 - Integer
@@ -23,7 +23,7 @@ purposes, but it currently can't parse the result to an object.
 - Named List
 - Empty
 
-###Creating an object
+### Creating an object
 
 You will need to create a new object to store any data, use a `BdfObject` instance.
 You can input serialized data into `BdfObject` via a `BdfDatabase`.
@@ -80,7 +80,7 @@ System.out.println(bdf instanceof BdfObject); // true
 
 ```
 
-###Arrays
+### Arrays
 
 Arrays can be used to store lists of information, they hold `BdfObject`.
 The array is called with `new BdfArray()`. It can hold information, get
@@ -120,7 +120,7 @@ for(BdfObject o : array)
 
 ```
 
-###Named Lists
+### Named Lists
 
 Named lists can be used to store data under strings,
 to be used like variables in a program. A named list
@@ -158,7 +158,7 @@ for(String key : list)
 ```
 
 
-###Example BDF program
+### Example BDF program
 
 ```java
 
