@@ -1,6 +1,15 @@
 # Binary Data Format
 
-### Overview:
+### Links
+
+- <a href="#overview">Overview</a>
+- <a href="#data-types">Data types</a>
+- <a href="#creating-an-object">Creating an object</a>
+- <a href="#arrays">Arrays</a>
+- <a href="#named-lists">Named lists</a>
+- <a href="#example-bdf-program">Example BDF program</a>
+
+### Overview
 
 Binary Data Format (or BDF) is designed to store data in a tag-like binary structure,
 like Notch's NBT format, but also open source and free like JSON. The format is
@@ -9,7 +18,7 @@ be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
 BDF allows human readable serialization to see what is going on for debugging
 purposes, but it currently can't parse the result to an object.
 
-### Datatypes:
+### Data types
 
 - Boolean
 - Integer
@@ -120,7 +129,7 @@ for(BdfObject o : array)
 
 ```
 
-### Named Lists
+### Named lists
 
 Named lists can be used to store data under strings,
 to be used like variables in a program. A named list
