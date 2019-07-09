@@ -101,6 +101,11 @@ public class BdfArray implements IBdfType
 		return elements.get(index);
 	}
 	
+	public BdfArray set(int index, BdfObject element) {
+		elements.set(index, element);
+		return this;
+	}
+	
 	public int size() {
 		return elements.size();
 	}

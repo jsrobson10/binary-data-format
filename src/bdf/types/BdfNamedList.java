@@ -15,7 +15,7 @@ public class BdfNamedList implements IBdfType
 		public BdfObject object;
 	}
 	
-	ArrayList<Element> elements = new ArrayList<Element>();
+	protected ArrayList<Element> elements = new ArrayList<Element>();
 	
 	public BdfNamedList() {
 	}

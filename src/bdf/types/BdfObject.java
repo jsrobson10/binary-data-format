@@ -73,43 +73,43 @@ public class BdfObject implements IBdfType
 		database = new BdfDatabase();
 	}
 	
-	public static BdfObject getNew(int v) {
+	public static BdfObject with(int v) {
 		return (new BdfObject()).setInteger(v);
 	}
 	
-	public static BdfObject getNew(byte v) {
+	public static BdfObject with(byte v) {
 		return (new BdfObject()).setByte(v);
 	}
 	
-	public static BdfObject getNew(boolean v) {
+	public static BdfObject with(boolean v) {
 		return (new BdfObject()).setBoolean(v);
 	}
 	
-	public static BdfObject getNew(float v) {
+	public static BdfObject with(float v) {
 		return (new BdfObject()).setFloat(v);
 	}
 	
-	public static BdfObject getNew(double v) {
+	public static BdfObject with(double v) {
 		return (new BdfObject()).setDouble(v);
 	}
 	
-	public static BdfObject getNew(long v) {
+	public static BdfObject with(long v) {
 		return (new BdfObject()).setLong(v);
 	}
 	
-	public static BdfObject getNew(short v) {
+	public static BdfObject with(short v) {
 		return (new BdfObject()).setShort(v);
 	}
 	
-	public static BdfObject getNew(String v) {
+	public static BdfObject with(String v) {
 		return (new BdfObject()).setString(v);
 	}
 	
-	public static BdfObject getNew(BdfArray v) {
+	public static BdfObject with(BdfArray v) {
 		return (new BdfObject()).setArray(v);
 	}
 	
-	public static BdfObject getNew(BdfNamedList v) {
+	public static BdfObject with(BdfNamedList v) {
 		return (new BdfObject()).setNamedList(v);
 	}
 	
@@ -126,7 +126,7 @@ public class BdfObject implements IBdfType
 	}
 	
 	public boolean getBoolean() {
-		return database.getByte(0) == 0x00;
+		return database.getByte(0) == 0x01;
 	}
 	
 	public double getDouble() {
@@ -219,14 +219,12 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject setArray(BdfArray value) {
 		this.type = BdfTypes.ARRAY;
-		this.database = value.serialize();
 		this.object = value;
 		return this;
 	}
 	
 	public BdfObject setNamedList(BdfNamedList value) {
 		this.type = BdfTypes.NAMED_LIST;
-		this.database = value.serialize();
 		this.object = value;
 		return this;
 	}
