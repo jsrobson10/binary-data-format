@@ -18,7 +18,7 @@ be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
 BDF allows human readable serialization to see what is going on for debugging
 purposes, but it currently can't parse the result to an object.
 
-### Data Types
+### Data types
 
 - Boolean
 - Integer
