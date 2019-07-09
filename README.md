@@ -3,7 +3,7 @@
 ### Links
 
 - <a href="#overview">Overview</a>
-- <a href="#data-types">Data Types</a>
+- <a href="#data-types">Data types</a>
 - <a href="#creating-an-object">Creating an object</a>
 - <a href="#arrays">Arrays</a>
 - <a href="#named-lists">Named lists</a>
