@@ -5,7 +5,7 @@ import bdf.types.BdfArray;
 import bdf.types.BdfNamedList;
 import bdf.types.BdfObject;
 
-public class Main {
+public class Tests {
 
 	public static void main(String[] args)
 	{
