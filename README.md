@@ -1,6 +1,10 @@
 # Binary Data Format
 
-### Overview:
+### Links
+
+- <a href="#Overview">Overview</a>
+
+### Overview
 
 Binary Data Format (or BDF) is designed to store data in a tag-like binary structure,
 like Notch's NBT format, but also open source and free like JSON. The format is
@@ -9,7 +13,7 @@ be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
 BDF allows human readable serialization to see what is going on for debugging
 purposes, but it currently can't parse the result to an object.
 
-### Datatypes:
+### Datatypes
 
 - Boolean
 - Integer
