@@ -2,9 +2,6 @@ package tests;
 
 import bdf.classes.BdfClassManager;
 import bdf.file.BdfFileManager;
-import bdf.types.BdfNamedList;
-import bdf.types.BdfObject;
-import bdf.types.BdfTypes;
 
 public class Tests {
 
@@ -12,14 +9,9 @@ public class Tests {
 	{
 		BdfFileManager bdf = new BdfFileManager("db.bdf");
 		
-		if(bdf.getType() != BdfTypes.NAMED_LIST)
-			bdf.setNamedList(new BdfNamedList());
-		
-		if(!bdf.getNamedList().contains("class1"))
-			bdf.getNamedList().set("class1", BdfObject.with(new BdfNamedList()));
-		
-		if(!bdf.getNamedList().contains("class2"))
-			bdf.getNamedList().set("class2", BdfObject.with(new BdfNamedList()));
+		bdf.setNamedListIfInvalid();
+		bdf.getNamedList().allocIfUndefined("class1");
+		bdf.getNamedList().allocIfUndefined("class2");
 		
 		TestClass t1 = new TestClass();
 		BdfClassManager m1 = new BdfClassManager(t1);

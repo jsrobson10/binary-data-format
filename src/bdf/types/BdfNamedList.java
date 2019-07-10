@@ -121,7 +121,7 @@ public class BdfNamedList implements IBdfType
 		throw new UndefinedKeyException(key);
 	}
 	
-	public void remove(String key)
+	public BdfNamedList remove(String key)
 	{
 		// Convert the key to bytes
 		byte[] key_bytes = key.getBytes();
@@ -139,7 +139,7 @@ public class BdfNamedList implements IBdfType
 				elements.remove(i);
 				
 				// Exit out of the function, prevent NullPointException
-				return;
+				return this;
 			}
 		}
 		
@@ -147,7 +147,7 @@ public class BdfNamedList implements IBdfType
 		throw new UndefinedKeyException(key);
 	}
 	
-	public void set(String key, BdfObject object)
+	public BdfNamedList set(String key, BdfObject object)
 	{
 		// Convert the key to bytes
 		byte[] key_bytes = key.getBytes();
@@ -162,7 +162,7 @@ public class BdfNamedList implements IBdfType
 				e.object = object;
 				
 				// Exit out of the function, don't add another object
-				return;
+				return this;
 			}
 		}
 		
@@ -173,6 +173,23 @@ public class BdfNamedList implements IBdfType
 		
 		// Add the new element object to the elements list
 		elements.add(e);
+		
+		// Send this class back
+		return this;
+	}
+	
+	public BdfNamedList setIfUndefined(String key, BdfObject object)
+	{
+		if(this.contains(key)) return this;
+		else return this.set(key, object);
+	}
+	
+	public BdfNamedList allocIfUndefined(String key) {
+		return this.setIfUndefined(key, new BdfObject());
+	}
+	
+	public BdfNamedList alloc(String key) {
+		return this.set(key, new BdfObject());
 	}
 	
 	public boolean contains(String key)
