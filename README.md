@@ -230,8 +230,11 @@ A script to manage this could look something like this:
 
 ```java
 
-// Load a new BdfObject instance
-BdfFileManager bdf = new BdfFileManager("hello.bdf");
+/*
+	Get a new BdfObject instance, it could be existing,
+	or from another file, BdfArray, or BdfNamedList instance.
+*/
+BdfObject bdf = new BdfObject();
 
 // Create the HelloWorld class
 HelloWorld hello = new HelloWorld();
@@ -250,8 +253,5 @@ hello.hello();
 
 // Save the classes bdf data
 manager.save();
-
-// Save the bdf from the manager to a file
-bdf.saveDatabase();
 
 ```
