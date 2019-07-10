@@ -177,27 +177,81 @@ is for packing pre-existing variables into bdf format.
 A BdfClassManager can be used to pass the `IBdfClassManager`
 interface into.
 
+A class with `IBdfClassManager` to save the data
+could look like this:
+
 ```java
 
 class HelloWorld implements IBdfClassManager
 {
+	int iterator = 0;
 
 	@Override
-	BdfClassLoad(BdfObject bdf)
+	public void BdfClassLoad(BdfObject bdf)
 	{
-	
+		// Load scripts here
 		
-	
+		// Create a new named list if the object isn't a named list
+		bdf.setNamedListIfInvalid();
+		
+		// Set the iterator if the iterator hasn't been set yet
+		bdf.getNamedList().setIfUndefined("iterator", BdfObject.withInteger(0));
+		
+		// Set the iterator stored in bdf
+		int iterator = bdf.getNamedList().get("iterator").getInteger();
 	}
 	
 	@Override
-	BdfClassSave(BdfObject bdf)
+	public void BdfClassSave(BdfObject bdf)
 	{
-	
+		// Save scripts here
 		
+		// Create a named list
+		bdf.setNamedList();
+		
+		// Set the iterator to the named list
+		bdf.getNamedList().set("iterator", BdfObject.withInteger(iterator));
+	}
 	
+	public void hello()
+	{
+		// Increase the iterator by 1
+		iterator++;
+		
+		// Say "Hello, World! Script executed <iterator> times!"
+		System.out.println("Hello, World! Script executed "+iterator+" times!");
 	}
 
 }
+
+```
+
+A script to manage this could look something like this:
+
+```java
+
+// Load a new BdfObject instance
+BdfFileManager bdf = new BdfFileManager("hello.bdf");
+
+// Create the HelloWorld class
+HelloWorld hello = new HelloWorld();
+
+// Get a new BdfClassManager instance to deal with BDF data
+BdfClassManager manager = new BdfClassManager(hello);
+
+// Give the manager an existing BdfObject instance
+manager.setBdf(bdf);
+
+// Load the classes bdf data
+manager.load();
+
+// Call the hello world function
+hello.hello();
+
+// Save the classes bdf data
+manager.save();
+
+// Save the bdf from the manager to a file
+bdf.saveDatabase();
 
 ```
