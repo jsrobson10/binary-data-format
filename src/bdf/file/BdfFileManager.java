@@ -41,7 +41,7 @@ public class BdfFileManager extends BdfObject
 			File file = new File(path);
 			
 			// Create the parent directories
-			file.getParentFile().mkdirs();
+			file.getAbsoluteFile().getParentFile().mkdirs();
 			
 			// Get the database file for output
 			FileOutputStream out = new FileOutputStream(path);

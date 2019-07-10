@@ -7,16 +7,16 @@
 - <a href="#creating-an-object">Creating an object</a>
 - <a href="#arrays">Arrays</a>
 - <a href="#named-lists">Named lists</a>
-- <a href="#example-bdf-program">Example BDF program</a>
+- <a href="#saving-classes">Saving classes</a>
 
 ### Overview
 
-Binary Data Format (or BDF) is designed to store data in a tag-like binary structure,
+Binary Data Format (or BDF) is designed to store data in a tree-like binary structure,
 like Notch's NBT format, but also open source and free like JSON. The format is
 fast and allows multiple data types, it uses 32-bit integers, so BDF files can
 be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
 BDF allows human readable serialization to see what is going on for debugging
-purposes, but it currently can't parse the result to an object.
+purposes, but it currently can't parse the human readable serialized string to an object.
 
 ### Data types
 
@@ -166,70 +166,92 @@ for(String key : list)
 
 ```
 
+### Saving classes
 
-### Example BDF program
+Classes can be saved with `BdfClassManager` and by
+implementing the `IBdfClassManager` interface,
+adding 2 functions `BdfClassLoad` and `BdfClassSave`.
+`BdfClassLoad` is for checking and loading data from
+bdf into the classes variables, while `BdfClassSave`
+is for packing pre-existing variables into bdf format.
+A BdfClassManager can be used to pass the `IBdfClassManager`
+interface into.
+
+A class with `IBdfClassManager` to save the data
+could look like this:
 
 ```java
 
-// Create a new BdfObject instance
+class HelloWorld implements IBdfClassManager
+{
+	int iterator = 0;
+
+	@Override
+	public void BdfClassLoad(BdfObject bdf)
+	{
+		// Load scripts here
+		
+		// Create a new named list if the object isn't a named list
+		bdf.setNamedListIfInvalid();
+		
+		// Set the iterator if the iterator hasn't been set yet
+		bdf.getNamedList().setIfUndefined("iterator", BdfObject.withInteger(0));
+		
+		// Set the iterator stored in bdf
+		int iterator = bdf.getNamedList().get("iterator").getInteger();
+	}
+	
+	@Override
+	public void BdfClassSave(BdfObject bdf)
+	{
+		// Save scripts here
+		
+		// Create a named list
+		bdf.setNamedList();
+		
+		// Set the iterator to the named list
+		bdf.getNamedList().set("iterator", BdfObject.withInteger(iterator));
+	}
+	
+	public void hello()
+	{
+		// Increase the iterator by 1
+		iterator++;
+		
+		// Say "Hello, World! Script executed <iterator> times!"
+		System.out.println("Hello, World! Script executed "+iterator+" times!");
+	}
+
+}
+
+```
+
+A script to manage this could look something like this:
+
+```java
+
+/*
+	Get a new BdfObject instance, it could be existing,
+	or from another file, BdfArray, or BdfNamedList instance.
+*/
 BdfObject bdf = new BdfObject();
 
-// Create a named list
-BdfNamedList bdf_nl = new BdfNamedList();
+// Create the HelloWorld class
+HelloWorld hello = new HelloWorld();
 
-// Add some variables to the named list
-bdf_nl.set("boolean", BdfObject.with(true));
-bdf_nl.set("an_int", BdfObject.with((int)53));
-bdf_nl.set("double", new BdfObject().setDouble(632.5));
+// Get a new BdfClassManager instance to deal with BDF data
+BdfClassManager manager = new BdfClassManager(hello);
 
-// Output some checks on BdfNamedList
-System.out.println(bdf_nl.contains("an_int")); // true
-System.out.println(bdf_nl.contains("this_dosn't_exist")); // false
+// Give the manager an existing BdfObject instance
+manager.setBdf(bdf);
 
-// Create an array
-BdfArray bdf_array = new BdfArray();
+// Load the classes bdf data
+manager.load();
 
-// Add some values to the array
-bdf_array.add(BdfObject.with("Hello, World!"));
-bdf_array.add(BdfObject.with(1234567890L));
-bdf_array.set(1, BdfObject.with((short)432));
+// Call the hello world function
+hello.hello();
 
-// Output the size of the array
-System.out.println(bdf_array.size()); // 2
+// Save the classes bdf data
+manager.save();
 
-// Output the type of the 2nd item in the array, value types are in BdfTypes
-System.out.println(bdf_array.get(1).getType()); // 3 (BdfTypes.SHORT)
-
-// Save the array to the named list
-bdf_nl.set("array", BdfObject.with(bdf_array));
-
-// Set the named list to the bdf object
-bdf.setNamedList(bdf_nl);
-
-// Serialize the data
-byte[] bdf_data = bdf.serialize().getBytes();
-
-
-
-// Load the serialized data
-BdfObject bdf2 = new BdfObject(new BdfDatabase(bdf_data));
-
-// Show the human readable serialized data
-System.out.println(bdf2.serializeHumanReadable()); // {"boolean": true, "an_int": 53I, "double": 632.5D, "array": ["Hello, World!", 432S]}
-
-// Show the value of the boolean in the named list
-System.out.println(bdf2.getNamedList().get("boolean").getBoolean()); // true
-
-// Show the value of item 0 in the array
-System.out.println(bdf2.getNamedList().get("array").getArray().get(0).getString());	// Hello, World!
-
-// Check if the double exists
-System.out.println(bdf2.getNamedList().contains("double")); // true
-
-// Remove the double from the named list
-bdf2.getNamedList().remove("double");
-
-// Check if the double exists
-System.out.println(bdf2.getNamedList().contains("double")); // false
-		
 ```

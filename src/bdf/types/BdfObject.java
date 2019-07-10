@@ -113,6 +113,54 @@ public class BdfObject implements IBdfType
 		return (new BdfObject()).setNamedList(v);
 	}
 	
+	public static BdfObject withInteger(int v) {
+		return (new BdfObject()).setInteger(v);
+	}
+	
+	public static BdfObject withByte(byte v) {
+		return (new BdfObject()).setByte(v);
+	}
+	
+	public static BdfObject withBoolean(boolean v) {
+		return (new BdfObject()).setBoolean(v);
+	}
+	
+	public static BdfObject withFloat(float v) {
+		return (new BdfObject()).setFloat(v);
+	}
+	
+	public static BdfObject withDouble(double v) {
+		return (new BdfObject()).setDouble(v);
+	}
+	
+	public static BdfObject withLong(long v) {
+		return (new BdfObject()).setLong(v);
+	}
+	
+	public static BdfObject withShort(short v) {
+		return (new BdfObject()).setShort(v);
+	}
+	
+	public static BdfObject withString(String v) {
+		return (new BdfObject()).setString(v);
+	}
+	
+	public static BdfObject withArray(BdfArray v) {
+		return (new BdfObject()).setArray(v);
+	}
+	
+	public static BdfObject withBdfNamedList(BdfNamedList v) {
+		return (new BdfObject()).setNamedList(v);
+	}
+
+	public static BdfObject withArray() {
+		return (new BdfObject()).setArray(new BdfArray());
+	}
+	
+	public static BdfObject withBdfNamedList() {
+		return (new BdfObject()).setNamedList(new BdfNamedList());
+	}
+	
 	public byte getType() {
 		return this.type;
 	}
@@ -228,4 +276,163 @@ public class BdfObject implements IBdfType
 		this.object = value;
 		return this;
 	}
+	
+	public BdfObject setArray() {
+		return this.setArray(new BdfArray());
+	}
+	
+	public BdfObject setNamedList() {
+		return this.setNamedList(new BdfNamedList());
+	}
+	
+	public BdfObject set(int v) {
+	  return this.setInteger(v);
+	}
+	
+	public BdfObject set(byte v) {
+	  return this.setByte(v);
+	}
+	
+	public BdfObject set(boolean v) {
+	  return this.setBoolean(v);
+	}
+	
+	public BdfObject set(float v) {
+	  return this.setFloat(v);
+	}
+	
+	public BdfObject set(double v) {
+	  return this.setDouble(v);
+	}
+	
+	public BdfObject set(long v) {
+	  return this.setLong(v);
+	}
+	
+	public BdfObject set(short v) {
+	  return this.setShort(v);
+	}
+	
+	public BdfObject set(String v) {
+	  return this.setString(v);
+	}
+	
+	public BdfObject set(BdfArray v) {
+	  return this.setArray(v);
+	}
+	
+	public BdfObject set(BdfNamedList v) {
+	  return this.setNamedList(v);
+	}
+	
+	public BdfObject setIfInvalid(int v) {
+	  if(this.getType() == BdfTypes.INTEGER) return this;
+	  return this.setInteger(v);
+	}
+
+	public BdfObject setIfInvalid(byte v) {
+	  if(this.getType() == BdfTypes.BYTE) return this;
+	  return this.setByte(v);
+	}
+
+	public BdfObject setIfInvalid(boolean v) {
+	  if(this.getType() == BdfTypes.BOOLEAN) return this;
+	  return this.setBoolean(v);
+	}
+
+	public BdfObject setIfInvalid(float v) {
+	  if(this.getType() == BdfTypes.FLOAT) return this;
+	  return this.setFloat(v);
+	}
+
+	public BdfObject setIfInvalid(double v) {
+	  if(this.getType() == BdfTypes.DOUBLE) return this;
+	  return this.setDouble(v);
+	}
+
+	public BdfObject setIfInvalid(long v) {
+	  if(this.getType() == BdfTypes.LONG) return this;
+	  return this.setLong(v);
+	}
+
+	public BdfObject setIfInvalid(short v) {
+	  if(this.getType() == BdfTypes.SHORT) return this;
+	  return this.setShort(v);
+	}
+
+	public BdfObject setIfInvalid(String v) {
+	  if(this.getType() == BdfTypes.STRING) return this;
+	  return this.setString(v);
+	}
+
+	public BdfObject setIfInvalid(BdfArray v) {
+	  if(this.getType() == BdfTypes.ARRAY) return this;
+	  return this.setArray(v);
+	}
+
+	public BdfObject setIfInvalid(BdfNamedList v) {
+	  if(this.getType() == BdfTypes.NAMED_LIST) return this;
+	  return this.setNamedList(v);
+	}
+
+	public BdfObject setIntegerIfInvalid(int v) {
+	  if(this.getType() == BdfTypes.INTEGER) return this;
+	  return this.setInteger(v);
+	}
+
+	public BdfObject setByteIfInvalid(byte v) {
+	  if(this.getType() == BdfTypes.BYTE) return this;
+	  return this.setByte(v);
+	}
+
+	public BdfObject setBooleanIfInvalid(boolean v) {
+	  if(this.getType() == BdfTypes.BOOLEAN) return this;
+	  return this.setBoolean(v);
+	}
+
+	public BdfObject setFloatIfInvalid(float v) {
+	  if(this.getType() == BdfTypes.FLOAT) return this;
+	  return this.setFloat(v);
+	}
+
+	public BdfObject setDoubleIfInvalid(double v) {
+	  if(this.getType() == BdfTypes.DOUBLE) return this;
+	  return this.setDouble(v);
+	}
+
+	public BdfObject setLongIfInvalid(long v) {
+	  if(this.getType() == BdfTypes.LONG) return this;
+	  return this.setLong(v);
+	}
+
+	public BdfObject setShortIfInvalid(short v) {
+	  if(this.getType() == BdfTypes.SHORT) return this;
+	  return this.setShort(v);
+	}
+
+	public BdfObject setStringIfInvalid(String v) {
+	  if(this.getType() == BdfTypes.STRING) return this;
+	  return this.setString(v);
+	}
+
+	public BdfObject setArrayIfInvalid(BdfArray v) {
+	  if(this.getType() == BdfTypes.ARRAY) return this;
+	  return this.setArray(v);
+	}
+
+	public BdfObject setNamedListIfInvalid(BdfNamedList v) {
+	  if(this.getType() == BdfTypes.NAMED_LIST) return this;
+	  return this.setNamedList(v);
+	}
+	
+	public BdfObject setArrayIfInvalid() {
+	  if(this.getType() == BdfTypes.ARRAY) return this;
+	  return this.setArray(new BdfArray());
+	}
+
+	public BdfObject setNamedListIfInvalid() {
+	  if(this.getType() == BdfTypes.NAMED_LIST) return this;
+	  return this.setNamedList(new BdfNamedList());
+	}
+
 }
