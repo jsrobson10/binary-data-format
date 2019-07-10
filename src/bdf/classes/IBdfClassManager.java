@@ -1,9 +1,9 @@
 package bdf.classes;
 
-import bdf.types.BdfNamedList;
+import bdf.types.BdfObject;
 
 public interface IBdfClassManager
 {
-	public void BdfClassLoad(BdfNamedList bdf);
-	public void BdfClassSave(BdfNamedList bdf);
+	public void BdfClassLoad(BdfObject bdf);
+	public void BdfClassSave(BdfObject bdf);
 }

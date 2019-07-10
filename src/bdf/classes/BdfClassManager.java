@@ -22,11 +22,11 @@ public class BdfClassManager
 	}
 	
 	public void save(BdfObject bdf) {
-		method.BdfClassSave(bdf.getNamedList());
+		method.BdfClassSave(bdf);
 	}
 	
 	public void load(BdfObject bdf) {
-		method.BdfClassLoad(bdf.getNamedList());
+		method.BdfClassLoad(bdf);
 	}
 	
 	public void save() {
