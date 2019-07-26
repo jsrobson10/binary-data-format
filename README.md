@@ -113,10 +113,10 @@ int size = array.size();
 array.remove(3); // Could be any number
 
 // Set - Could be any number with any object
-array.set(4, BdfObject.with("A String"));
+array.set(4, BdfObject.withString("A String"));
 
 // Add - Could be any object
-array.add(BdfObject.with(53));
+array.add(BdfObject.withByte(53));
 
 // Set the array to the bdf object
 bdf.setArray(array);
@@ -147,7 +147,7 @@ Named lists also have Iterator support and are an instance of
 BdfNamedList list = new BdfNamedList();
 
 // Set an element with a value
-list.set("key1", BdfObject.with(5));
+list.set("key1", BdfObject.withInteger(5));
 
 // Get an elements value
 int v = list.get("key1").getInteger();
@@ -191,14 +191,11 @@ class HelloWorld implements IBdfClassManager
 	{
 		// Load scripts here
 		
-		// Create a new named list if the object isn't a named list
-		bdf.setNamedListIfInvalid();
-		
-		// Set the iterator if the iterator hasn't been set yet
-		bdf.getNamedList().setIfUndefined("iterator", BdfObject.withInteger(0));
+		// Get the named list
+		BdfNamedList nl = bdf.getNamedList();
 		
 		// Set the iterator stored in bdf
-		int iterator = bdf.getNamedList().get("iterator").getInteger();
+		int iterator = nl.get("iterator").getInteger();
 	}
 	
 	@Override
@@ -207,10 +204,13 @@ class HelloWorld implements IBdfClassManager
 		// Save scripts here
 		
 		// Create a named list
-		bdf.setNamedList();
+		BdfNamedList nl = new BdfNamedList();
 		
 		// Set the iterator to the named list
-		bdf.getNamedList().set("iterator", BdfObject.withInteger(iterator));
+		nl.set("iterator", BdfObject.withInteger(iterator));
+		
+		// Store the named list
+		bdf.setNamedList(nl);
 	}
 	
 	public void hello()

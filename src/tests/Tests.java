@@ -2,24 +2,26 @@ package tests;
 
 import bdf.classes.BdfClassManager;
 import bdf.file.BdfFileManager;
+import bdf.types.BdfNamedList;
+import bdf.types.BdfObject;
 
 public class Tests {
 
 	public static void main(String[] args)
 	{
 		BdfFileManager bdf = new BdfFileManager("db.bdf");
+		BdfNamedList nl = bdf.getNamedList();
 		
-		bdf.setNamedListIfInvalid();
-		bdf.getNamedList().allocIfUndefined("class1");
-		bdf.getNamedList().allocIfUndefined("class2");
+		BdfObject class1 = nl.get("class1");
+		BdfObject class2 = nl.get("class2");
 		
 		TestClass t1 = new TestClass();
 		BdfClassManager m1 = new BdfClassManager(t1);
-		m1.setBdf(bdf.getNamedList().get("class1"));
+		m1.setBdf(class1);
 		
 		TestClass t2 = new TestClass();
 		BdfClassManager m2 = new BdfClassManager(t2);
-		m2.setBdf(bdf.getNamedList().get("class2"));
+		m2.setBdf(class2);
 		
 		m1.load();
 		m2.load();

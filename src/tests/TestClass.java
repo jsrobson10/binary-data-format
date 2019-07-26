@@ -1,7 +1,9 @@
 package tests;
 
 import bdf.classes.IBdfClassManager;
+import bdf.types.BdfNamedList;
 import bdf.types.BdfObject;
+import bdf.types.BdfTypes;
 
 public class TestClass implements IBdfClassManager
 {
@@ -10,16 +12,16 @@ public class TestClass implements IBdfClassManager
 	@Override
 	public void BdfClassLoad(BdfObject bdf)
 	{
-		bdf.setNamedListIfInvalid();
-		bdf.getNamedList().setIfUndefined("i", BdfObject.withInteger(0));
-		this.i = bdf.getNamedList().get("i").getInteger();
+		BdfNamedList nl = bdf.getNamedList();
+		this.i = nl.get("i").getInteger();
 	}
 
 	@Override
 	public void BdfClassSave(BdfObject bdf)
 	{
-		bdf.setNamedList();
-		bdf.getNamedList().set("i", BdfObject.withInteger(i));
+		BdfNamedList nl = new BdfNamedList();
+		nl.set("i", BdfObject.withInteger(i));
+		bdf.setNamedList(nl);
 	}
 
 	public void tick()

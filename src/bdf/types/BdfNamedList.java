@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import bdf.data.BdfDatabase;
-import bdf.exception.UndefinedKeyException;
 import bdf.util.DataHelpers;
 
 public class BdfNamedList implements IBdfType
@@ -117,8 +116,14 @@ public class BdfNamedList implements IBdfType
 			}
 		}
 		
-		// Raise an error
-		throw new UndefinedKeyException(key);
+		// Get a bdf object
+		BdfObject o = new BdfObject();
+		
+		// Set the bdf object
+		this.set(key, o);
+		
+		// Send back the object
+		return o;
 	}
 	
 	public BdfNamedList remove(String key)
@@ -143,8 +148,8 @@ public class BdfNamedList implements IBdfType
 			}
 		}
 		
-		// Raise an error
-		throw new UndefinedKeyException(key);
+		// Send back nothing
+		return this;
 	}
 	
 	public BdfNamedList set(String key, BdfObject object)
@@ -176,20 +181,6 @@ public class BdfNamedList implements IBdfType
 		
 		// Send this class back
 		return this;
-	}
-	
-	public BdfNamedList setIfUndefined(String key, BdfObject object)
-	{
-		if(this.contains(key)) return this;
-		else return this.set(key, object);
-	}
-	
-	public BdfNamedList allocIfUndefined(String key) {
-		return this.setIfUndefined(key, new BdfObject());
-	}
-	
-	public BdfNamedList alloc(String key) {
-		return this.set(key, new BdfObject());
 	}
 	
 	public boolean contains(String key)
