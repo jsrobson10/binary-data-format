@@ -223,5 +223,4 @@ public class BdfNamedList implements IBdfType
 	public int size() {
 		return elements.size();
 	}
-	
 }

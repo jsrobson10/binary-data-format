@@ -1,7 +1,10 @@
 package tests;
 
+import java.util.Iterator;
+
 import bdf.classes.BdfClassManager;
 import bdf.file.BdfFileManager;
+import bdf.types.BdfArray;
 import bdf.types.BdfNamedList;
 import bdf.types.BdfObject;
 
@@ -35,6 +38,29 @@ public class Tests {
 		bdf.saveDatabase();
 		
 		System.out.println(bdf.serializeHumanReadable());
+		
+		BdfArray a = new BdfArray();
+		
+		a.add(BdfObject.withInteger(1));
+		a.add(BdfObject.withInteger(534));
+		a.add(BdfObject.withInteger(32));
+		a.add(BdfObject.withInteger(22));
+		a.add(BdfObject.withInteger(12));
+		
+		Iterator<BdfObject> i = a.iterator();
+		
+		while(i.hasNext())
+		{
+			System.out.println(i.next().getInteger());
+			i.remove();
+		}
+		
+		Iterator<BdfObject> i2 = a.iterator();
+		
+		while(i2.hasNext())
+		{
+			System.out.println(i2.next().getInteger());
+		}
 	}
 
 }

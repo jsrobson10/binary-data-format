@@ -1,11 +1,12 @@
 package bdf.types;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import bdf.data.BdfDatabase;
 import bdf.util.DataHelpers;
 
-public class BdfArray implements IBdfType
+public class BdfArray implements IBdfType, Iterable<BdfObject>
 {
 	protected ArrayList<BdfObject> elements = new ArrayList<BdfObject>();
 	
@@ -108,6 +109,38 @@ public class BdfArray implements IBdfType
 	
 	public int size() {
 		return elements.size();
+	}
+
+	@Override
+	public Iterator<BdfObject> iterator()
+	{
+		return new Iterator<BdfObject>()
+		{
+			protected int i = 0;
+			
+			@Override
+			public boolean hasNext()
+			{
+				return elements.size() > i;
+			}
+
+			@Override
+			public BdfObject next()
+			{
+				BdfObject o = elements.get(i);
+				
+				i++;
+				
+				return o;
+			}
+			
+			@Override
+			public void remove()
+			{
+				i-=1;
+				elements.remove(i);
+			}
+		};
 	}
 
 }

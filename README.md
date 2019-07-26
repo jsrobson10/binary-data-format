@@ -159,7 +159,7 @@ boolean has_key = list.contains("key1");
 String[] keys = list.getKeys();
 
 // Iterate over the lists keys
-for(String key : list)
+for(String key : keys)
 {
 
 }
