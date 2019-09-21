@@ -3,6 +3,8 @@ package bdf.types;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+import com.sun.org.apache.bcel.internal.generic.Type;
+
 import bdf.data.BdfDatabase;
 import bdf.util.DataHelpers;
 
@@ -26,7 +28,7 @@ public class BdfObject implements IBdfType
 			database = data.getAt(1, data.length());
 			
 			// Set the object variable if there is an object specified
-			if(type == BdfTypes.STRING) object = new String(database.getBytes(), StandardCharsets.UTF_8);
+			if(type == BdfTypes.STRING) object = database.getBytes();
 			if(type == BdfTypes.ARRAY) object = new BdfArray(database);
 			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
 		}
@@ -41,7 +43,7 @@ public class BdfObject implements IBdfType
 	@Override
 	public BdfDatabase serialize()
 	{
-		if(type == BdfTypes.STRING) database = new BdfDatabase(this.getString());
+		if(type == BdfTypes.STRING) database = new BdfDatabase(this.getByteBuffer().array());
 		if(type == BdfTypes.ARRAY) database = ((BdfArray)object).serialize();
 		if(type == BdfTypes.NAMED_LIST) database = ((BdfNamedList)object).serialize();
 		
@@ -138,7 +140,15 @@ public class BdfObject implements IBdfType
 		if(this.type != BdfTypes.STRING)
 			this.setString("");
 		
-		return (String)object;
+		return new String((byte[])object, StandardCharsets.UTF_8);
+	}
+	
+	public ByteBuffer getByteBuffer()
+	{
+		if(this.type != BdfTypes.STRING)
+			this.setString("");
+		
+		return ByteBuffer.wrap((byte[])object);
 	}
 	
 	public BdfArray getArray()
@@ -212,8 +222,15 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject setString(String value) {
 		this.type = BdfTypes.STRING;
-		this.database = new BdfDatabase(value);
-		this.object = value;
+		this.database = new BdfDatabase(value.getBytes());
+		this.object = value.getBytes();
+		return this;
+	}
+	
+	public BdfObject setByteBuffer(ByteBuffer value) {
+		this.type = BdfTypes.STRING;
+		this.database = new BdfDatabase(value.array());
+		this.object = value.array();
 		return this;
 	}
 	
@@ -267,6 +284,10 @@ public class BdfObject implements IBdfType
 	
 	public static BdfObject withString(String v) {
 		return (new BdfObject()).setString(v);
+	}
+	
+	public static BdfObject withByteBuffer(ByteBuffer v) {
+		return (new BdfObject()).setByteBuffer(v);
 	}
 	
 	public static BdfObject withArray(BdfArray v) {

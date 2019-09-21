@@ -3,7 +3,6 @@ package tests;
 import bdf.classes.IBdfClassManager;
 import bdf.types.BdfNamedList;
 import bdf.types.BdfObject;
-import bdf.types.BdfTypes;
 
 public class TestClass implements IBdfClassManager
 {
