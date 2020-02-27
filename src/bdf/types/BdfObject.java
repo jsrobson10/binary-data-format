@@ -3,8 +3,6 @@ package bdf.types;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import com.sun.org.apache.bcel.internal.generic.Type;
-
 import bdf.data.BdfDatabase;
 import bdf.util.DataHelpers;
 
@@ -28,7 +26,7 @@ public class BdfObject implements IBdfType
 			database = data.getAt(1, data.length());
 			
 			// Set the object variable if there is an object specified
-			if(type == BdfTypes.STRING) object = database.getBytes();
+			if(type == BdfTypes.STRING) object = database.getString();
 			if(type == BdfTypes.ARRAY) object = new BdfArray(database);
 			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
 		}
@@ -43,7 +41,7 @@ public class BdfObject implements IBdfType
 	@Override
 	public BdfDatabase serialize()
 	{
-		if(type == BdfTypes.STRING) database = new BdfDatabase(this.getByteBuffer().array());
+		if(type == BdfTypes.STRING) database = new BdfDatabase((String)object);
 		if(type == BdfTypes.ARRAY) database = ((BdfArray)object).serialize();
 		if(type == BdfTypes.NAMED_LIST) database = ((BdfNamedList)object).serialize();
 		
@@ -57,15 +55,83 @@ public class BdfObject implements IBdfType
 			else return "false";
 		}
 		
+		// Objects
 		if(type == BdfTypes.ARRAY) return ((IBdfType)object).serializeHumanReadable();
 		if(type == BdfTypes.NAMED_LIST) return ((IBdfType)object).serializeHumanReadable();
+		if(type == BdfTypes.STRING) return DataHelpers.serializeString((String)object);
+		
+		// Primitives
 		if(type == BdfTypes.BYTE) return (Byte.toString(this.getByte())+"B");
 		if(type == BdfTypes.DOUBLE) return (Double.toString(this.getDouble())+"D");
 		if(type == BdfTypes.FLOAT) return (Float.toString(this.getFloat())+"F");
 		if(type == BdfTypes.INTEGER) return (Integer.toString(this.getInteger())+"I");
 		if(type == BdfTypes.LONG) return (Long.toString(this.getLong())+"L");
 		if(type == BdfTypes.SHORT) return (Short.toString(this.getShort())+"S");
-		if(type == BdfTypes.STRING) return DataHelpers.serializeString((String)object);
+		if(type == BdfTypes.BOOLEAN) return this.getBoolean() ? "true" : "false";
+		
+		// Arrays
+		if(type == BdfTypes.ARRAY_INTEGER) {
+			String str = "(";
+			for(int i : this.getIntegerArray()) {
+				str += Integer.toString(i) + "I, ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
+		
+		if(type == BdfTypes.ARRAY_BOOLEAN) {
+			String str = "(";
+			for(boolean i : this.getBooleanArray()) {
+				str += (i ? "true" : "false") + ", ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
+		
+		if(type == BdfTypes.ARRAY_BYTE) {
+			String str = "(";
+			for(byte i : this.getByteArray()) {
+				str += Byte.toString(i) + "B, ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
+		
+		if(type == BdfTypes.ARRAY_LONG) {
+			String str = "(";
+			for(long i : this.getLongArray()) {
+				str += Long.toString(i) + "L, ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
+		
+		if(type == BdfTypes.ARRAY_SHORT) {
+			String str = "(";
+			for(short i : this.getShortArray()) {
+				str += Short.toString(i) + "S, ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
+		
+		if(type == BdfTypes.ARRAY_DOUBLE) {
+			String str = "(";
+			for(double i : this.getDoubleArray()) {
+				str += Double.toString(i) + "D, ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
+		
+		if(type == BdfTypes.ARRAY_FLOAT) {
+			String str = "(";
+			for(float i : this.getFloatArray()) {
+				str += Float.toString(i) + "F, ";
+			}
+			str = str.substring(0, str.length() - 2) + ")";
+			return str;
+		}
 		
 		// Return null if the object is undefined
 		return "undefined";
@@ -79,6 +145,7 @@ public class BdfObject implements IBdfType
 		return this.type;
 	}
 	
+	// Primitives
 	public int getInteger()
 	{
 		if(this.type == BdfTypes.INTEGER)
@@ -135,20 +202,148 @@ public class BdfObject implements IBdfType
 			return 0;
 	}
 	
+	// Arrays
+	public int[] getIntegerArray()
+	{
+		if(this.type == BdfTypes.ARRAY_INTEGER)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			int[] array = new int[b.capacity() / Integer.BYTES];
+			
+			for(int i = 0; i < b.capacity() / Integer.BYTES; i++) {
+				array[i] = b.getInt();
+			}
+			
+			object = array;
+			return array;
+		}
+		
+		else {
+			return new int[0];
+		}
+	}
+	
+	public boolean[] getBooleanArray()
+	{
+		if(this.type == BdfTypes.ARRAY_BOOLEAN)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			boolean[] array = new boolean[b.capacity()];
+			
+			for(int i = 0; i < b.capacity(); i++) {
+				array[i] = b.get() == 0x01 ? true : false;
+			}
+			
+			return array;
+		}
+		
+		else {
+			return new boolean[0];
+		}
+	}
+	
+	public long[] getLongArray()
+	{
+		if(this.type == BdfTypes.ARRAY_LONG)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			long[] array = new long[b.capacity() / Long.BYTES];
+			
+			for(int i = 0; i < b.capacity() / Long.BYTES; i++) {
+				array[i] = b.getLong();
+			}
+			
+			return array;
+		}
+		
+		else {
+			return new long[0];
+		}
+	}
+	
+	public short[] getShortArray()
+	{
+		if(this.type == BdfTypes.ARRAY_SHORT)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			short[] array = new short[b.capacity() / Short.BYTES];
+			
+			for(int i = 0; i < b.capacity() / Short.BYTES; i++) {
+				array[i] = b.getShort();
+			}
+			
+			return array;
+		}
+		
+		else {
+			return new short[0];
+		}
+	}
+	
+	public byte[] getByteArray()
+	{
+		if(this.type == BdfTypes.ARRAY_BYTE)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			byte[] array = new byte[b.capacity() / Byte.BYTES];
+			
+			for(int i = 0; i < b.capacity() / Byte.BYTES; i++) {
+				array[i] = b.get();
+			}
+			
+			return array;
+		}
+		
+		else {
+			return new byte[0];
+		}
+	}
+	
+	public double[] getDoubleArray()
+	{
+		if(this.type == BdfTypes.ARRAY_DOUBLE)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			double[] array = new double[b.capacity() / Double.BYTES];
+			
+			for(int i = 0; i < b.capacity() / Double.BYTES; i++) {
+				array[i] = b.getDouble();
+			}
+			
+			return array;
+		}
+		
+		else {
+			return new double[0];
+		}
+	}
+	
+	public float[] getFloatArray()
+	{
+		if(this.type == BdfTypes.ARRAY_FLOAT)
+		{
+			ByteBuffer b = DataHelpers.getByteBuffer(database);
+			float[] array = new float[b.capacity() / Float.BYTES];
+			
+			for(int i = 0; i < b.capacity() / Float.BYTES; i++) {
+				array[i] = b.getFloat();
+			}
+			
+			return array;
+		}
+		
+		else {
+			return new float[0];
+		}
+	}
+	
+	// Objects
 	public String getString()
 	{
 		if(this.type != BdfTypes.STRING)
 			this.setString("");
 		
-		return new String((byte[])object, StandardCharsets.UTF_8);
-	}
-	
-	public ByteBuffer getByteBuffer()
-	{
-		if(this.type != BdfTypes.STRING)
-			this.setString("");
-		
-		return ByteBuffer.wrap((byte[])object);
+		return (String)object;
 	}
 	
 	public BdfArray getArray()
@@ -223,14 +418,7 @@ public class BdfObject implements IBdfType
 	public BdfObject setString(String value) {
 		this.type = BdfTypes.STRING;
 		this.database = new BdfDatabase(value.getBytes());
-		this.object = value.getBytes();
-		return this;
-	}
-	
-	public BdfObject setByteBuffer(ByteBuffer value) {
-		this.type = BdfTypes.STRING;
-		this.database = new BdfDatabase(value.array());
-		this.object = value.array();
+		this.object = value;
 		return this;
 	}
 	
@@ -254,6 +442,77 @@ public class BdfObject implements IBdfType
 		return this.setNamedList(new BdfNamedList());
 	}
 	
+	public BdfObject setBooleanArray(boolean[] value) {
+		this.type = BdfTypes.ARRAY_BOOLEAN;
+		ByteBuffer b = ByteBuffer.allocate(value.length);
+		for(boolean v : value) {
+			b.put((byte) (v ? 0x01 : 0x00));
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	public BdfObject setIntegerArray(int[] value) {
+		this.type = BdfTypes.ARRAY_INTEGER;
+		ByteBuffer b = ByteBuffer.allocate(value.length * Integer.BYTES);
+		for(int v : value) {
+			b.putInt(v);
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	public BdfObject setLongArray(long[] value) {
+		this.type = BdfTypes.ARRAY_LONG;
+		ByteBuffer b = ByteBuffer.allocate(value.length * Long.BYTES);
+		for(long v : value) {
+			b.putLong(v);
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	public BdfObject setShortArray(short[] value) {
+		this.type = BdfTypes.ARRAY_SHORT;
+		ByteBuffer b = ByteBuffer.allocate(value.length * Short.BYTES);
+		for(short v : value) {
+			b.putShort(v);
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	public BdfObject setByteArray(byte[] value) {
+		this.type = BdfTypes.ARRAY_BYTE;
+		ByteBuffer b = ByteBuffer.allocate(value.length * Byte.BYTES);
+		for(byte v : value) {
+			b.put(v);
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	public BdfObject setDoubleArray(double[] value) {
+		this.type = BdfTypes.ARRAY_DOUBLE;
+		ByteBuffer b = ByteBuffer.allocate(value.length * Double.BYTES);
+		for(double v : value) {
+			b.putDouble(v);
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	public BdfObject setFloatArray(float[] value) {
+		this.type = BdfTypes.ARRAY_FLOAT;
+		ByteBuffer b = ByteBuffer.allocate(value.length * Float.BYTES);
+		for(float v : value) {
+			b.putFloat(v);
+		}
+		database = DataHelpers.getDatabase(b);
+		return this;
+	}
+	
+	// Primitives
 	public static BdfObject withInteger(int v) {
 		return (new BdfObject()).setInteger(v);
 	}
@@ -282,12 +541,38 @@ public class BdfObject implements IBdfType
 		return (new BdfObject()).setShort(v);
 	}
 	
-	public static BdfObject withString(String v) {
-		return (new BdfObject()).setString(v);
+	// Arrays
+	public static BdfObject withIntegerArray(int[] v) {
+		return (new BdfObject()).setIntegerArray(v);
 	}
 	
-	public static BdfObject withByteBuffer(ByteBuffer v) {
-		return (new BdfObject()).setByteBuffer(v);
+	public static BdfObject withByteArray(byte[] v) {
+		return (new BdfObject()).setByteArray(v);
+	}
+	
+	public static BdfObject withBooleanArray(boolean[] v) {
+		return (new BdfObject()).setBooleanArray(v);
+	}
+	
+	public static BdfObject withFloatArray(float[] v) {
+		return (new BdfObject()).setFloatArray(v);
+	}
+	
+	public static BdfObject withDoubleArray(double[] v) {
+		return (new BdfObject()).setDoubleArray(v);
+	}
+	
+	public static BdfObject withLongArray(long[] v) {
+		return (new BdfObject()).setLongArray(v);
+	}
+	
+	public static BdfObject withShortArray(short[] v) {
+		return (new BdfObject()).setShortArray(v);
+	}
+	
+	// Objects
+	public static BdfObject withString(String v) {
+		return (new BdfObject()).setString(v);
 	}
 	
 	public static BdfObject withArray(BdfArray v) {
