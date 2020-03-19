@@ -4,14 +4,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.zip.DeflaterOutputStream;
 
 import bdf.data.BdfDatabase;
 import bdf.types.BdfObject;
 import bdf.util.FileHelpers;
 
-public class BdfFileManager extends BdfObject
+public class BdfCompressedFileManager extends BdfObject
 {
-	protected String path;
+
+protected String path;
 	
 	private static BdfDatabase init(String path)
 	{
@@ -22,14 +24,14 @@ public class BdfFileManager extends BdfObject
 		if(file.canRead())
 		{
 			// Return the files contents as a database
-			return new BdfDatabase(FileHelpers.readAllIgnoreErrors(path));
+			return new BdfDatabase(FileHelpers.readAllCompressedIgnoreErrors(path));
 		}
 		
 		// Return an empty database if there is no read access
 		return new BdfDatabase();
 	}
 	
-	public BdfFileManager(String path) {
+	public BdfCompressedFileManager(String path) {
 		super(init(path));
 		this.path = path;
 	}
@@ -45,7 +47,7 @@ public class BdfFileManager extends BdfObject
 			file.getAbsoluteFile().getParentFile().mkdirs();
 			
 			// Get the database file for output
-			OutputStream out = new FileOutputStream(path);
+			OutputStream out = new DeflaterOutputStream(new FileOutputStream(path));
 			
 			// Write the database to the file
 			out.write(this.serialize().getBytes());
@@ -62,4 +64,5 @@ public class BdfFileManager extends BdfObject
 	public void saveDatabase() {
 		this.saveDatabase(this.path);
 	}
+	
 }
