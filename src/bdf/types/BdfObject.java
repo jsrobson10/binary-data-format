@@ -1,7 +1,6 @@
 package bdf.types;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 import bdf.data.BdfDatabase;
 import bdf.util.DataHelpers;
@@ -48,7 +47,16 @@ public class BdfObject implements IBdfType
 		return BdfDatabase.add(new BdfDatabase(type), database);
 	}
 	
-	public String serializeHumanReadable()
+	private String calcIndent(BdfIndent indent, int it) {
+		String t = "";
+		t += indent.breaker;
+		for(int i=0;i<=it;i++) {
+			t += indent.indent;
+		}
+		return t;
+	}
+	
+	public String serializeHumanReadable(BdfIndent indent, int it)
 	{
 		if(type == BdfTypes.BOOLEAN) {
 			if(this.getBoolean()) return "true";
@@ -56,8 +64,8 @@ public class BdfObject implements IBdfType
 		}
 		
 		// Objects
-		if(type == BdfTypes.ARRAY) return ((IBdfType)object).serializeHumanReadable();
-		if(type == BdfTypes.NAMED_LIST) return ((IBdfType)object).serializeHumanReadable();
+		if(type == BdfTypes.ARRAY) return ((IBdfType)object).serializeHumanReadable(indent, it);
+		if(type == BdfTypes.NAMED_LIST) return ((IBdfType)object).serializeHumanReadable(indent, it);
 		if(type == BdfTypes.STRING) return DataHelpers.serializeString((String)object);
 		
 		// Primitives
@@ -71,63 +79,63 @@ public class BdfObject implements IBdfType
 		
 		// Arrays
 		if(type == BdfTypes.ARRAY_INTEGER) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(int i : this.getIntegerArray()) {
-				str += Integer.toString(i) + "I, ";
+				str += Integer.toString(i) + "I, " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_BOOLEAN) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(boolean i : this.getBooleanArray()) {
-				str += (i ? "true" : "false") + ", ";
+				str += (i ? "true" : "false") + ", " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_BYTE) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(byte i : this.getByteArray()) {
-				str += Byte.toString(i) + "B, ";
+				str += Byte.toString(i) + "B, " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_LONG) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(long i : this.getLongArray()) {
-				str += Long.toString(i) + "L, ";
+				str += Long.toString(i) + "L, " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_SHORT) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(short i : this.getShortArray()) {
-				str += Short.toString(i) + "S, ";
+				str += Short.toString(i) + "S, " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_DOUBLE) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(double i : this.getDoubleArray()) {
-				str += Double.toString(i) + "D, ";
+				str += Double.toString(i) + "D, " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_FLOAT) {
-			String str = "(";
+			String str = "(" + calcIndent(indent, it);
 			for(float i : this.getFloatArray()) {
-				str += Float.toString(i) + "F, ";
+				str += Float.toString(i) + "F, " + calcIndent(indent, it);
 			}
 			str = str.substring(0, str.length() - 2) + ")";
 			return str;

@@ -5,9 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.InflaterInputStream;
-import java.util.zip.ZipException;
-
-import com.sun.corba.se.impl.ior.ByteBuffer;
 
 public class FileHelpers
 {

@@ -73,22 +73,38 @@ public class BdfNamedList implements IBdfType
 	}
 	
 	@Override
-	public String serializeHumanReadable()
+	public String serializeHumanReadable(BdfIndent indent, int it)
 	{
+		if(elements.size() == 0) {
+			return "{}";
+		}
+		
 		String data = "{";
 		
 		for(int i=0;i<elements.size();i++)
 		{
 			Element e = elements.get(i);
 			
+			data += indent.breaker;
+			
+			for(int n=0;n<=it;n++) {
+				data += indent.indent;
+			}
+			
 			data += DataHelpers.serializeString(new String(e.key, StandardCharsets.UTF_8));
 			data += ": ";
-			data += e.object.serializeHumanReadable();
+			data += e.object.serializeHumanReadable(indent, it + 1);
 			
 			if(elements.size() > i+1)
 			{
 				data += ", ";
 			}
+		}
+		
+		data += indent.breaker;
+		
+		for(int n=0;n<it;n++) {
+			data += indent.indent;
 		}
 		
 		return data + "}";
