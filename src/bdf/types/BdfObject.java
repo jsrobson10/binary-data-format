@@ -49,7 +49,6 @@ public class BdfObject implements IBdfType
 	
 	private String calcIndent(BdfIndent indent, int it) {
 		String t = "";
-		t += indent.breaker;
 		for(int i=0;i<=it;i++) {
 			t += indent.indent;
 		}
@@ -81,63 +80,70 @@ public class BdfObject implements IBdfType
 		if(type == BdfTypes.ARRAY_INTEGER) {
 			String str = "(" + calcIndent(indent, it);
 			for(int i : this.getIntegerArray()) {
-				str += Integer.toString(i) + "I, " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + Integer.toString(i) + "I, ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_BOOLEAN) {
-			String str = "(" + calcIndent(indent, it);
+			String str = "(";
 			for(boolean i : this.getBooleanArray()) {
-				str += (i ? "true" : "false") + ", " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + (i ? "true" : "false") + ", ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_BYTE) {
 			String str = "(" + calcIndent(indent, it);
 			for(byte i : this.getByteArray()) {
-				str += Byte.toString(i) + "B, " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + Byte.toString(i) + "B, ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_LONG) {
 			String str = "(" + calcIndent(indent, it);
 			for(long i : this.getLongArray()) {
-				str += Long.toString(i) + "L, " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + Long.toString(i) + "L, ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_SHORT) {
 			String str = "(" + calcIndent(indent, it);
 			for(short i : this.getShortArray()) {
-				str += Short.toString(i) + "S, " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + Short.toString(i) + "S, ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_DOUBLE) {
 			String str = "(" + calcIndent(indent, it);
 			for(double i : this.getDoubleArray()) {
-				str += Double.toString(i) + "D, " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + Double.toString(i) + "D, ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		
 		if(type == BdfTypes.ARRAY_FLOAT) {
 			String str = "(" + calcIndent(indent, it);
 			for(float i : this.getFloatArray()) {
-				str += Float.toString(i) + "F, " + calcIndent(indent, it);
+				str += indent.breaker + calcIndent(indent, it) + Float.toString(i) + "F, ";
 			}
-			str = str.substring(0, str.length() - 2) + ")";
+			str = str.substring(0, str.length() - 2);
+			str += indent.breaker + calcIndent(indent, it - 1) + ")";
 			return str;
 		}
 		

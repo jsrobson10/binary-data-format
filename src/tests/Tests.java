@@ -30,7 +30,7 @@ public class Tests {
 		nl.set("int_array", BdfObject.withIntegerArray(array));
 		nl.set("array", BdfObject.withArray(array_bdf));
 		
-		System.out.println(bdf.serializeHumanReadable(new BdfIndent("  ", "\n")));
+		System.out.println(bdf.serializeHumanReadable(new BdfIndent("\t", "\n")));
 		
 		bdf.saveDatabase();
 	}
