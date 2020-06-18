@@ -1,10 +1,12 @@
 package bdf.types;
 
-import bdf.data.BdfDatabase;
+import bdf.data.IBdfDatabase;
 
-public interface IBdfType
+interface IBdfType
 {
-	public BdfDatabase serialize();
+	int serialize(IBdfDatabase database);
+	int serializeSeeker();
+	
 	String serializeHumanReadable(BdfIndent indent, int it);
 
 	public default String serializeHumanReadable(BdfIndent indent) {

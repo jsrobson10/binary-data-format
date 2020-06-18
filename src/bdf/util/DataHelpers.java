@@ -3,10 +3,11 @@ package bdf.util;
 import java.nio.ByteBuffer;
 
 import bdf.data.BdfDatabase;
+import bdf.data.IBdfDatabase;
 
 public class DataHelpers
 {
-	public static ByteBuffer getByteBuffer(BdfDatabase db) {
+	public static ByteBuffer getByteBuffer(IBdfDatabase db) {
 		return ByteBuffer.wrap(db.getBytes());
 	}
 	
@@ -14,11 +15,11 @@ public class DataHelpers
 		return new BdfDatabase(buffer.array());
 	}
 	
-	public static BdfDatabase serializeInt(int value)
+	public static byte[] serializeInt(int value)
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(Integer.SIZE/8);
 		buffer.putInt(value);
-		return getDatabase(buffer);
+		return buffer.array();
 	}
 	
 	public static boolean bytesAreEqual(byte[] b1, byte[] b2)
@@ -74,7 +75,10 @@ public class DataHelpers
 		String serialized = string;
 		
 		// Replace some parts of the string
+		serialized = replaceInString(serialized, '\\', "\\\\");
 		serialized = replaceInString(serialized, '"', "\\\"");
+		serialized = replaceInString(serialized, '\n', "\\n");
+		serialized = replaceInString(serialized, '\t', "\\t");
 		
 		// Add quotes to the string
 		serialized = "\"" + serialized + "\"";

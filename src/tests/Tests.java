@@ -1,6 +1,12 @@
 package tests;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import bdf.data.BdfDatabase;
 import bdf.file.BdfCompressedFileManager;
+import bdf.file.BdfFileManager;
 import bdf.types.BdfArray;
 import bdf.types.BdfIndent;
 import bdf.types.BdfNamedList;
@@ -8,31 +14,55 @@ import bdf.types.BdfObject;
 
 public class Tests {
 
-	public static void main(String[] args)
+	public static void main(String[] args) throws InterruptedException, IOException
 	{
-		BdfCompressedFileManager bdf = new BdfCompressedFileManager("./db.bdf");
-		
+		/*
+		BdfObject bdf = new BdfObject();
 		BdfNamedList nl = bdf.getNamedList();
 		
-		int array[] = {1,2,3,6,7,0};
-		int array2[] = {1,2,3,6,7,0};
+		byte[] bytes = new byte[1024*1024*1024];
+		for(int i=0;i<bytes.length;i++) {
+			bytes[i] = (byte)0;
+		}
 		
-		BdfArray array_bdf = new BdfArray();
+		for(int i=0;i<1000;i++) {
+			nl = nl.get("next").getNamedList();
+		}
 		
-		array_bdf.add(BdfObject.withBoolean(true));
-		array_bdf.add(BdfObject.withBoolean(false));
-		array_bdf.add(BdfObject.withInteger(7));
-		array_bdf.add(BdfObject.withNamedList());
-		array_bdf.add(BdfObject.withArray());
-		array_bdf.add(BdfObject.withIntegerArray(array2));
+		nl.get("next").setByteArray(bytes);
 		
-		nl.set("it", BdfObject.withInteger(nl.get("it").getInteger() + 1));
-		nl.set("int_array", BdfObject.withIntegerArray(array));
-		nl.set("array", BdfObject.withArray(array_bdf));
+		BdfDatabase data = bdf.serialize();
 		
-		System.out.println(bdf.serializeHumanReadable(new BdfIndent("\t", "\n")));
+		FileOutputStream file = new FileOutputStream("./database.bdf");
+		data.writeToStream(file);
+		*/
 		
-		bdf.saveDatabase();
+		/*
+		BdfObject bdf = new BdfObject();
+		BdfArray a = bdf.getArray();
+		
+		byte[] bytes = new byte[1024*1024*1024];
+		for(int i=0;i<bytes.length;i++) {
+			bytes[i] = (byte)0;
+		}
+		
+		for(int i=0;i<1000;i++) {
+			BdfArray a2 = new BdfArray();
+			a.add(BdfObject.withArray(a2));
+			a = a2;
+		}
+		
+		a.add(BdfObject.withByteArray(bytes));
+		
+		BdfDatabase data = bdf.serialize();
+		
+		FileOutputStream file = new FileOutputStream("./database.bdf");
+		data.writeToStream(file);
+		 */
+		
+		BdfFileManager bdf = new BdfFileManager("./database.bdf");
+		System.out.println("Loaded bdf");
+		Thread.sleep(5000);
 	}
 
 }

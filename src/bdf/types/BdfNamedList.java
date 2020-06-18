@@ -3,7 +3,7 @@ package bdf.types;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-import bdf.data.BdfDatabase;
+import bdf.data.IBdfDatabase;
 import bdf.util.DataHelpers;
 
 public class BdfNamedList implements IBdfType
@@ -19,24 +19,24 @@ public class BdfNamedList implements IBdfType
 	public BdfNamedList() {
 	}
 
-	public BdfNamedList(BdfDatabase data)
+	public BdfNamedList(IBdfDatabase data)
 	{
 		// Create an iterator value to loop over the data
 		int i = 0;
 		
 		// Loop over the data
-		while(i < data.length())
+		while(i < data.size())
 		{
 			// Get the key
-			int key_size = DataHelpers.getByteBuffer(data.getAt(i, i+(Integer.SIZE/8))).getInt();
-			i += (Integer.SIZE/8);
-			byte[] key = data.getAt(i, i+key_size).getBytes();
+			int key_size = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
+			i += 4;
+			byte[] key = data.getPointer(i, key_size).getBytes();
 			
 			// Get the object
 			i += key_size;
-			int object_size = DataHelpers.getByteBuffer(data.getAt(i, i+(Integer.SIZE/8))).getInt();
-			i += (Integer.SIZE/8);
-			BdfObject object = new BdfObject(data.getAt(i, i+object_size));
+			int object_size = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
+			i += 4;
+			BdfObject object = new BdfObject(data.getPointer(i, object_size));
 			
 			// Create a new element and save some data to it
 			Element element = new Element();
@@ -52,24 +52,44 @@ public class BdfNamedList implements IBdfType
 	}
 	
 	@Override
-	public BdfDatabase serialize()
+	public int serialize(IBdfDatabase database)
 	{
-		// Create the serialized data string
-		BdfDatabase serialized = new BdfDatabase();
+		int pos = 0;
 		
-		// Loop over the elements
 		for(Element o : elements)
 		{
-			// Add the serialized data to the data string
-			BdfDatabase data = o.object.serialize();
-			serialized = BdfDatabase.add(serialized, DataHelpers.serializeInt(o.key.length));
-			serialized = BdfDatabase.add(serialized, new BdfDatabase(o.key));
-			serialized = BdfDatabase.add(serialized, DataHelpers.serializeInt(data.length()));
-			serialized = BdfDatabase.add(serialized, data);
+			database.setBytes(pos, DataHelpers.serializeInt(o.key.length));
+			
+			pos += 4;
+			
+			database.setBytes(pos, o.key);
+			
+			pos += o.key.length;
+			
+			int size = o.object.serialize(database.getPointer(pos + 4, database.size() - (pos + 4)));
+			
+			database.setBytes(pos, DataHelpers.serializeInt(size));
+			
+			pos += 4;
+			pos += size;
 		}
 		
-		// Send back the serialized data
-		return serialized;
+		return pos;
+	}
+	
+	@Override
+	public int serializeSeeker()
+	{
+		int size = 0;
+		
+		for(Element o : elements)
+		{
+			size += 8;
+			size += o.key.length;
+			size += o.object.serializeSeeker();
+		}
+		
+		return size;
 	}
 	
 	@Override
@@ -165,6 +185,18 @@ public class BdfNamedList implements IBdfType
 		}
 		
 		// Send back nothing
+		return this;
+	}
+	
+	public BdfNamedList remove(BdfObject bdf)
+	{
+		for(int i=0;i<elements.size();i++) {
+			if(elements.get(i).object == bdf) {
+				elements.remove(i);
+				i -= 1;
+			}
+		}
+		
 		return this;
 	}
 	

@@ -28,7 +28,7 @@ protected String path;
 		}
 		
 		// Return an empty database if there is no read access
-		return new BdfDatabase();
+		return new BdfDatabase(0);
 	}
 	
 	public BdfCompressedFileManager(String path) {

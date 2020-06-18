@@ -3,7 +3,7 @@ package bdf.types;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import bdf.data.BdfDatabase;
+import bdf.data.IBdfDatabase;
 import bdf.util.DataHelpers;
 
 public class BdfArray implements IBdfType, Iterable<BdfObject>
@@ -13,47 +13,56 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	public BdfArray() {
 	}
 	
-	public BdfArray(BdfDatabase data)
+	public BdfArray(IBdfDatabase data)
 	{
 		// Create an iterator value to loop over the data
 		int i = 0;
 		
 		// Loop over the data
-		while(i < data.length())
+		while(i < data.size())
 		{
 			// Get the size of the object
-			int size = DataHelpers.getByteBuffer(data.getAt(i, (i+(Integer.SIZE/8)))).getInt();
+			int size = DataHelpers.getByteBuffer(data.getPointer(i, Integer.BYTES)).getInt();
 			
 			// Get the object
-			BdfObject object = new BdfObject(data.getAt((i+(Integer.SIZE/8)), (i+(Integer.SIZE/8)+size)));
+			BdfObject object = new BdfObject(data.getPointer((i+Integer.BYTES), size));
 			
 			// Add the object to the elements list
 			elements.add(object);
 			
 			// Increase the iterator by the amount of bytes
-			i += (Integer.SIZE/8)+size;
+			i += Integer.BYTES+size;
 		}
 	}
-
+	
 	@Override
-	public BdfDatabase serialize()
+	public int serializeSeeker()
 	{
-		// Create the serialized data string
-		BdfDatabase serialized = new BdfDatabase();
+		int size = 0;
 		
-		// Loop over the elements
-		for(BdfObject o : elements)
-		{
-			// Convert the object to a string
-			BdfDatabase db = o.serialize();
-			
-			// Add the serialized object to the serialized data
-			serialized = BdfDatabase.add(serialized, DataHelpers.serializeInt(db.length()));
-			serialized = BdfDatabase.add(serialized, db);
+		for(BdfObject o : elements) {
+			size += o.serializeSeeker();
+			size += 4;
 		}
 		
-		// Send back the serialized data
-		return serialized;
+		return size;
+	}
+	
+	@Override
+	public int serialize(IBdfDatabase database)
+	{
+		int pos = 0;
+		
+		for(BdfObject o : elements)
+		{
+			int size = o.serialize(database.getPointer(pos + 4));
+			database.setBytes(pos, DataHelpers.serializeInt(size));
+			
+			pos += size;
+			pos += 4;
+		}
+		
+		return pos;
 	}
 	
 	@Override
@@ -108,9 +117,13 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		return this;
 	}
 	
-	public BdfArray remove(int index)
-	{
+	public BdfArray remove(int index) {
 		elements.remove(index);
+		return this;
+	}
+	
+	public BdfArray remove(BdfObject bdf) {
+		elements.remove(bdf);
 		return this;
 	}
 	

@@ -3,11 +3,12 @@ package bdf.types;
 import java.nio.ByteBuffer;
 
 import bdf.data.BdfDatabase;
+import bdf.data.IBdfDatabase;
 import bdf.util.DataHelpers;
 
 public class BdfObject implements IBdfType
 {
-	protected BdfDatabase database = null;
+	protected IBdfDatabase database = null;
 	protected Object object = null;
 	protected byte type = BdfTypes.EMPTY;
 	
@@ -15,36 +16,93 @@ public class BdfObject implements IBdfType
 		return new BdfObject();
 	}
 	
-	public BdfObject(BdfDatabase data)
+	public BdfObject(byte[] data) {
+		this(new BdfDatabase(data));
+	}
+	
+	public BdfObject(IBdfDatabase data)
 	{
 		// Is the database length greater than 1
-		if(data.length() > 1)
+		if(data.size() > 1)
 		{
 			// Get the type and database values
-			type = data.getAt(0, 1).getByte(0);
-			database = data.getAt(1, data.length());
+			type = data.getByte(0);
+			database = data.getPointer(1, data.size() - 1);
 			
 			// Set the object variable if there is an object specified
 			if(type == BdfTypes.STRING) object = database.getString();
 			if(type == BdfTypes.ARRAY) object = new BdfArray(database);
 			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
+			
+			if(object != null) {
+				database = null;
+			}
 		}
 		
 		else
 		{
 			// Create a new database
-			database = new BdfDatabase();
+			database = new BdfDatabase(0);
 		}
 	}
 	
 	@Override
+	public int serialize(IBdfDatabase database)
+	{
+		int size;
+		
+		IBdfDatabase db = database.getPointer(1);
+		
+		// Objects
+		switch(type)
+		{
+		case BdfTypes.ARRAY:
+			size = ((BdfArray)object).serialize(db) + 1;
+			break;
+			
+		case BdfTypes.NAMED_LIST:
+			size = ((BdfNamedList)object).serialize(db) + 1;
+			break;
+			
+		case BdfTypes.STRING:
+			String str = (String)object;
+			size = str.length() + 1;
+			db.setBytes(0, str.getBytes());
+			break;
+			
+		default:
+			size = this.database.size() + 1;
+			db.setBytes(0, this.database.getBytes());
+			break;
+		}
+		
+		database.setByte(0, type);
+		
+		return size;
+	}
+
+	@Override
+	public int serializeSeeker()
+	{
+		// Objects
+		switch(type)
+		{
+		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker() + 1;
+		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker() + 1;
+		case BdfTypes.STRING: return ((String)object).length() + 1;
+		}
+		
+		// Anything else
+		return database.size() + 1;
+	}
+	
 	public BdfDatabase serialize()
 	{
-		if(type == BdfTypes.STRING) database = new BdfDatabase((String)object);
-		if(type == BdfTypes.ARRAY) database = ((BdfArray)object).serialize();
-		if(type == BdfTypes.NAMED_LIST) database = ((BdfNamedList)object).serialize();
+		BdfDatabase database = new BdfDatabase(serializeSeeker());
 		
-		return BdfDatabase.add(new BdfDatabase(type), database);
+		serialize(database);
+		
+		return database;
 	}
 	
 	private String calcIndent(BdfIndent indent, int it) {
@@ -152,7 +210,7 @@ public class BdfObject implements IBdfType
 	}
 	
 	public BdfObject() {
-		database = new BdfDatabase();
+		database = new BdfDatabase(0);
 	}
 	
 	public byte getType() {
@@ -378,7 +436,7 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject setInteger(int value) {
 		this.type = BdfTypes.INTEGER;
-		ByteBuffer b = ByteBuffer.allocate(Integer.SIZE/8);
+		ByteBuffer b = ByteBuffer.allocate(Integer.BYTES);
 		b.putInt(0, value);
 		database = DataHelpers.getDatabase(b);
 		return this;
