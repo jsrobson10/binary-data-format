@@ -1,5 +1,8 @@
 package bdf.types;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import bdf.data.IBdfDatabase;
 
 interface IBdfType
@@ -7,13 +10,5 @@ interface IBdfType
 	int serialize(IBdfDatabase database);
 	int serializeSeeker();
 	
-	String serializeHumanReadable(BdfIndent indent, int it);
-
-	public default String serializeHumanReadable(BdfIndent indent) {
-		return this.serializeHumanReadable(indent, 0);
-	}
-	
-	public default String serializeHumanReadable() {
-		return this.serializeHumanReadable(new BdfIndent("", ""), 0);
-	}
+	void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException;
 }

@@ -1,5 +1,7 @@
 package bdf.types;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -66,39 +68,39 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	}
 	
 	@Override
-	public String serializeHumanReadable(BdfIndent indent, int it)
+	public void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException
 	{
 		if(elements.size() == 0) {
-			return "[]";
+			stream.write("[]".getBytes());
+			return;
 		}
 		
-		String data = "[";
+		stream.write('[');
 		
 		for(int i=0;i<elements.size();i++)
 		{
 			BdfObject o = elements.get(i);
 			
-			data += indent.breaker;
+			stream.write(indent.breaker.getBytes());
 			
 			for(int n=0;n<=it;n++) {
-				data += indent.indent;
+				stream.write(indent.indent.getBytes());
 			}
 			
-			data += o.serializeHumanReadable(indent, it + 1);
+			o.serializeHumanReadable(stream, indent, it + 1);
 			
-			if(elements.size() > i+1)
-			{
-				data += ", ";
+			if(elements.size() > i+1) {
+				stream.write(", ".getBytes());
 			}
 		}
 		
-		data += indent.breaker;
+		stream.write(indent.breaker.getBytes());
 		
 		for(int n=0;n<it;n++) {
-			data += indent.indent;
+			stream.write(indent.indent.getBytes());
 		}
 		
-		return data + "]";
+		stream.write(']');
 	}
 	
 	public BdfArray add(BdfObject o)

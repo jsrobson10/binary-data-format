@@ -1,5 +1,8 @@
 package bdf.types;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 import bdf.data.BdfDatabase;
@@ -113,100 +116,168 @@ public class BdfObject implements IBdfType
 		return t;
 	}
 	
+	public String serializeHumanReadable(BdfIndent indent) {
+		return serializeHumanReadable(indent, 0);
+	}
+	
+	public String serializeHumanReadable() {
+		return serializeHumanReadable(new BdfIndent("", ""), 0);
+	}
+	
 	public String serializeHumanReadable(BdfIndent indent, int it)
 	{
-		if(type == BdfTypes.BOOLEAN) {
-			if(this.getBoolean()) return "true";
-			else return "false";
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		
+		try {
+			serializeHumanReadable(stream, indent, it);
+			return stream.toString();
 		}
 		
-		// Objects
-		if(type == BdfTypes.ARRAY) return ((IBdfType)object).serializeHumanReadable(indent, it);
-		if(type == BdfTypes.NAMED_LIST) return ((IBdfType)object).serializeHumanReadable(indent, it);
-		if(type == BdfTypes.STRING) return DataHelpers.serializeString((String)object);
+		catch(IOException e) {
+			return "undefined";
+		}
+	}
+	
+	public void serializeHumanReadable(OutputStream stream, BdfIndent indent) throws IOException {
+		serializeHumanReadable(stream, indent, 0);
+	}
+	
+	public void serializeHumanReadable(OutputStream stream) throws IOException {
+		serializeHumanReadable(stream, new BdfIndent("", ""), 0);
+	}
+	
+	public void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException
+	{
+		String str = null;
 		
-		// Primitives
-		if(type == BdfTypes.BYTE) return (Byte.toString(this.getByte())+"B");
-		if(type == BdfTypes.DOUBLE) return (Double.toString(this.getDouble())+"D");
-		if(type == BdfTypes.FLOAT) return (Float.toString(this.getFloat())+"F");
-		if(type == BdfTypes.INTEGER) return (Integer.toString(this.getInteger())+"I");
-		if(type == BdfTypes.LONG) return (Long.toString(this.getLong())+"L");
-		if(type == BdfTypes.SHORT) return (Short.toString(this.getShort())+"S");
-		if(type == BdfTypes.BOOLEAN) return this.getBoolean() ? "true" : "false";
-		
-		// Arrays
-		if(type == BdfTypes.ARRAY_INTEGER) {
-			String str = "(" + calcIndent(indent, it);
-			for(int i : this.getIntegerArray()) {
-				str += indent.breaker + calcIndent(indent, it) + Integer.toString(i) + "I, ";
+		switch(type)
+		{
+		case BdfTypes.ARRAY:
+			((IBdfType)object).serializeHumanReadable(stream, indent, it);
+			return;
+			
+		case BdfTypes.NAMED_LIST:
+			((IBdfType)object).serializeHumanReadable(stream, indent, it);
+			return;
+			
+		case BdfTypes.STRING:
+			str = DataHelpers.serializeString((String)object);
+			break;
+			
+		case BdfTypes.BOOLEAN:
+			if(this.getBoolean()) str = "true";
+			else str = "false";
+			break;
+			
+		case BdfTypes.BYTE:
+			str = Byte.toString(this.getByte())+"B";
+			break;
+			
+		case BdfTypes.INTEGER:
+			str = Integer.toString(this.getInteger())+"I";
+			break;
+			
+		case BdfTypes.SHORT:
+			str = Short.toString(this.getShort())+"S";
+			break;
+			
+		case BdfTypes.LONG:
+			str = Long.toString(this.getLong())+"L";
+			break;
+			
+		case BdfTypes.DOUBLE:
+			str = Double.toString(this.getDouble())+"D";
+			break;
+			
+		case BdfTypes.FLOAT:
+			str = Float.toString(this.getFloat())+"F";
+			break;
+			
+		case BdfTypes.ARRAY_INTEGER: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			int[] array = this.getIntegerArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + Integer.toString(array[i]) + "I").getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
 		}
-		
-		if(type == BdfTypes.ARRAY_BOOLEAN) {
-			String str = "(";
-			for(boolean i : this.getBooleanArray()) {
-				str += indent.breaker + calcIndent(indent, it) + (i ? "true" : "false") + ", ";
+			
+		case BdfTypes.ARRAY_BOOLEAN: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			boolean[] array = this.getBooleanArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + (array[i] ? "true" : "false")).getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
 		}
-		
-		if(type == BdfTypes.ARRAY_BYTE) {
-			String str = "(" + calcIndent(indent, it);
-			for(byte i : this.getByteArray()) {
-				str += indent.breaker + calcIndent(indent, it) + Byte.toString(i) + "B, ";
+			
+		case BdfTypes.ARRAY_SHORT: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			short[] array = this.getShortArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + Short.toString(array[i]) + "S").getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
 		}
-		
-		if(type == BdfTypes.ARRAY_LONG) {
-			String str = "(" + calcIndent(indent, it);
-			for(long i : this.getLongArray()) {
-				str += indent.breaker + calcIndent(indent, it) + Long.toString(i) + "L, ";
+			
+		case BdfTypes.ARRAY_LONG: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			long[] array = this.getLongArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + Long.toString(array[i]) + "L").getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
 		}
 		
-		if(type == BdfTypes.ARRAY_SHORT) {
-			String str = "(" + calcIndent(indent, it);
-			for(short i : this.getShortArray()) {
-				str += indent.breaker + calcIndent(indent, it) + Short.toString(i) + "S, ";
+		case BdfTypes.ARRAY_BYTE: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			byte[] array = this.getByteArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + Byte.toString(array[i]) + "B").getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
 		}
 		
-		if(type == BdfTypes.ARRAY_DOUBLE) {
-			String str = "(" + calcIndent(indent, it);
-			for(double i : this.getDoubleArray()) {
-				str += indent.breaker + calcIndent(indent, it) + Double.toString(i) + "D, ";
+		case BdfTypes.ARRAY_DOUBLE: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			double[] array = this.getDoubleArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + Double.toString(array[i]) + "D").getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
 		}
 		
-		if(type == BdfTypes.ARRAY_FLOAT) {
-			String str = "(" + calcIndent(indent, it);
-			for(float i : this.getFloatArray()) {
-				str += indent.breaker + calcIndent(indent, it) + Float.toString(i) + "F, ";
+		case BdfTypes.ARRAY_FLOAT: {
+			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			float[] array = this.getFloatArray();
+			for(int i=0;i<array.length;i++) {
+				stream.write((indent.breaker + calcIndent(indent, it) + Float.toString(array[i]) + "F").getBytes());
+				if(i == array.length - 1) stream.write(", ".getBytes());
 			}
-			str = str.substring(0, str.length() - 2);
-			str += indent.breaker + calcIndent(indent, it - 1) + ")";
-			return str;
+			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
+			break;
+		}
+			
+		default:
+			str = "undefined";
+			break;
 		}
 		
-		// Return null if the object is undefined
-		return "undefined";
+		if(str != null) {
+			stream.write(str.getBytes());
+		}
 	}
 	
 	public BdfObject() {

@@ -1,5 +1,7 @@
 package bdf.types;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
@@ -93,41 +95,40 @@ public class BdfNamedList implements IBdfType
 	}
 	
 	@Override
-	public String serializeHumanReadable(BdfIndent indent, int it)
+	public void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException
 	{
 		if(elements.size() == 0) {
-			return "{}";
+			stream.write("{}".getBytes());
+			return;
 		}
-		
-		String data = "{";
+
+		stream.write('{');
 		
 		for(int i=0;i<elements.size();i++)
 		{
 			Element e = elements.get(i);
 			
-			data += indent.breaker;
+			stream.write(indent.breaker.getBytes());
 			
 			for(int n=0;n<=it;n++) {
-				data += indent.indent;
+				stream.write(indent.indent.getBytes());
 			}
 			
-			data += DataHelpers.serializeString(new String(e.key, StandardCharsets.UTF_8));
-			data += ": ";
-			data += e.object.serializeHumanReadable(indent, it + 1);
+			stream.write((DataHelpers.serializeString(new String(e.key, StandardCharsets.UTF_8)) + ": ").getBytes());
+			e.object.serializeHumanReadable(stream, indent, it + 1);
 			
-			if(elements.size() > i+1)
-			{
-				data += ", ";
+			if(elements.size() > i+1) {
+				stream.write(", ".getBytes());
 			}
 		}
 		
-		data += indent.breaker;
+		stream.write(indent.breaker.getBytes());
 		
 		for(int n=0;n<it;n++) {
-			data += indent.indent;
+			stream.write(indent.indent.getBytes());
 		}
 		
-		return data + "}";
+		stream.write('}');
 	}
 	
 	public BdfObject get(String key)

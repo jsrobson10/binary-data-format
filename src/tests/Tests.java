@@ -37,16 +37,16 @@ public class Tests {
 		data.writeToStream(file);
 		*/
 		
-		/*
+		
 		BdfObject bdf = new BdfObject();
 		BdfArray a = bdf.getArray();
 		
-		byte[] bytes = new byte[1024*1024*1024];
+		byte[] bytes = new byte[1024*1024*1024/2];
 		for(int i=0;i<bytes.length;i++) {
 			bytes[i] = (byte)0;
 		}
 		
-		for(int i=0;i<1000;i++) {
+		for(int i=0;i<10;i++) {
 			BdfArray a2 = new BdfArray();
 			a.add(BdfObject.withArray(a2));
 			a = a2;
@@ -58,11 +58,11 @@ public class Tests {
 		
 		FileOutputStream file = new FileOutputStream("./database.bdf");
 		data.writeToStream(file);
-		 */
 		
-		BdfFileManager bdf = new BdfFileManager("./database.bdf");
-		System.out.println("Loaded bdf");
-		Thread.sleep(5000);
+		
+		//BdfFileManager bdf = new BdfFileManager("./database.bdf");
+		//System.out.println("Loaded bdf");
+		//Thread.sleep(5000);
 	}
 
 }
