@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.zip.DeflaterOutputStream;
 
 import bdf.data.BdfDatabase;
 import bdf.types.BdfObject;
@@ -12,8 +13,9 @@ import bdf.util.FileHelpers;
 public class BdfFileManager extends BdfObject
 {
 	protected String path;
+	private boolean compressed;
 	
-	private static BdfDatabase init(String path)
+	private static BdfDatabase init(String path, boolean compressed)
 	{
 		// Get the file
 		File file = new File(path);
@@ -21,17 +23,30 @@ public class BdfFileManager extends BdfObject
 		// Does the file have read access
 		if(file.canRead())
 		{
-			// Return the files contents as a database
-			return new BdfDatabase(FileHelpers.readAllIgnoreErrors(path));
+			if(compressed)
+			{
+				// Return the files contents as a database
+				return new BdfDatabase(FileHelpers.readAllCompressedIgnoreErrors(path));
+			}
+			
+			else
+			{
+				// Return the files contents as a database
+				return new BdfDatabase(FileHelpers.readAllIgnoreErrors(path));
+			}
 		}
 		
 		// Return an empty database if there is no read access
 		return new BdfDatabase(0);
 	}
 	
-	public BdfFileManager(String path) {
-		super(init(path));
+	public BdfFileManager(String path, boolean compressed) {
+		super(init(path, compressed));
 		this.path = path;
+	}
+	
+	public BdfFileManager(String path) {
+		this(path, false);
 	}
 	
 	public void saveDatabase(String path)
@@ -47,8 +62,13 @@ public class BdfFileManager extends BdfObject
 			// Get the database file for output
 			OutputStream out = new FileOutputStream(path);
 			
+			if(compressed) {
+				out = new DeflaterOutputStream(out);
+			}
+			
 			// Write the database to the file
-			out.write(this.serialize().getBytes());
+			BdfDatabase db = this.serialize();
+			db.writeToStream(out);
 			
 			// Close the file output stream
 			out.close();

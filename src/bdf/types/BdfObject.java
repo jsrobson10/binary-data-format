@@ -515,14 +515,14 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject setByte(byte value) {
 		this.type = BdfTypes.BYTE;
-		database = new BdfDatabase(value);
+		database = new BdfDatabase(new byte[] {value});
 		return this;
 	}
 	
 	public BdfObject setBoolean(boolean value) {
 		this.type = BdfTypes.BOOLEAN;
-		if(value) database = new BdfDatabase((byte)0x01);
-		else database = new BdfDatabase((byte)0x00);
+		if(value) database = new BdfDatabase(new byte[] {0x01});
+		else database = new BdfDatabase(new byte[] {0x00});
 		return this;
 	}
 	

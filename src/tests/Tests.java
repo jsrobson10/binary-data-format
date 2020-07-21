@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import bdf.data.BdfDatabase;
-import bdf.file.BdfCompressedFileManager;
 import bdf.file.BdfFileManager;
 import bdf.types.BdfArray;
 import bdf.types.BdfIndent;
