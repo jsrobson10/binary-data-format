@@ -8,6 +8,7 @@
 - <a href="#arrays">Arrays</a>
 - <a href="#named-lists">Named lists</a>
 - <a href="#saving-classes">Saving classes</a>
+- <a href="#other-implementations">Other implementations</a>
 
 ### Overview
 
@@ -255,3 +256,8 @@ hello.hello();
 manager.save();
 
 ```
+
+### Other implementations
+
+- Java
+- <a href="https://github.com/jsrobson10/BdfCpp">C++</a>
