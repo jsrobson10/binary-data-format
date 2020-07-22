@@ -3,12 +3,12 @@
 ### Links
 
 - <a href="#overview">Overview</a>
+- <a href="#languages">Languages</a>
 - <a href="#data-types">Data types</a>
 - <a href="#creating-an-object">Creating an object</a>
 - <a href="#arrays">Arrays</a>
 - <a href="#named-lists">Named lists</a>
 - <a href="#saving-classes">Saving classes</a>
-- <a href="#other-implementations">Other implementations</a>
 
 ### Overview
 
@@ -18,6 +18,12 @@ fast and allows multiple data types, it uses 32-bit integers, so BDF files can
 be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
 BDF allows human readable serialization to see what is going on for debugging
 purposes, but it currently can't parse the human readable serialized string to an object.
+
+
+### Languages
+
+- Java
+- <a href="https://github.com/jsrobson10/BdfCpp">C++</a>
 
 ### Data types
 
@@ -256,8 +262,3 @@ hello.hello();
 manager.save();
 
 ```
-
-### Other implementations
-
-- Java
-- <a href="https://github.com/jsrobson10/BdfCpp">C++</a>
