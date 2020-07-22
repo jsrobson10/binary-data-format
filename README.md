@@ -9,6 +9,7 @@
 - <a href="#arrays">Arrays</a>
 - <a href="#named-lists">Named lists</a>
 - <a href="#saving-classes">Saving classes</a>
+- <a href="#implementation-details">Implementation details</a>
 
 ### Overview
 
@@ -262,3 +263,46 @@ hello.hello();
 manager.save();
 
 ```
+
+### Implementation details
+
+All integer data types used are signed and Big Endian.
+
+**Type (1 byte)**
+```
+0:  BOOLEAN (1 byte, 0x00 or 0x01)
+1:  INTEGER (4 bytes)
+2:  LONG    (8 bytes)
+3:  SHORT   (2 bytes)
+4:  BYTE    (1 byte)
+5:  DOUBLE  (8 bytes)
+6:  FLOAT   (4 bytes)
+
+7:  STRING
+8:  ARRAY
+9:  NAMED_LIST
+
+10: EMPTY   (0 bytes)
+
+11: ARRAY_BOOLEAN
+12: ARRAY_INTEGER
+13: ARRAY_LONG
+14: ARRAY_SHORT
+15: ARRAY_BYTE
+16: ARRAY_DOUBLE
+17: ARRAY_FLOAT
+```
+
+**Object**
+- Type (signed byte, 1 byte)
+- Payload (Any type, variable length)
+
+**NamedList**
+- Key size (signed int, 4 bytes)
+- Key (variable length)
+- Payload size (signed int, 4 bytes)
+- Payload (Object, variable length)
+
+**Array**
+- Payload size (signed int, 4 bytes)
+- Payload (Object, variable length)
