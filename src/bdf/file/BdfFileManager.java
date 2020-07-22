@@ -17,6 +17,8 @@ public class BdfFileManager extends BdfObject
 	
 	private static BdfDatabase init(String path, boolean compressed)
 	{
+		this.compressed = compressed;
+		
 		// Get the file
 		File file = new File(path);
 		
