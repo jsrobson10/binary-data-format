@@ -13,18 +13,17 @@ public class BdfObject implements IBdfType
 {
 	protected IBdfDatabase database = null;
 	protected Object object = null;
-	protected byte type = BdfTypes.EMPTY;
+	protected byte type = BdfTypes.UNDEFINED;
+	protected BdfLookupTable lookupTable;
 	
-	public static BdfObject getNew() {
-		return new BdfObject();
+	BdfObject(BdfLookupTable lookupTable) {
+		this.lookupTable = lookupTable;
 	}
 	
-	public BdfObject(byte[] data) {
-		this(new BdfDatabase(data));
-	}
-	
-	public BdfObject(IBdfDatabase data)
+	BdfObject(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
+		this.lookupTable = lookupTable;
+		
 		// Is the database length greater than 1
 		if(data.size() > 1)
 		{
@@ -34,8 +33,8 @@ public class BdfObject implements IBdfType
 			
 			// Set the object variable if there is an object specified
 			if(type == BdfTypes.STRING) object = database.getString();
-			if(type == BdfTypes.ARRAY) object = new BdfArray(database);
-			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
+			if(type == BdfTypes.ARRAY) object = new BdfArray(lookupTable, database);
+			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(lookupTable, database);
 			
 			if(object != null) {
 				database = null;
@@ -99,51 +98,12 @@ public class BdfObject implements IBdfType
 		return database.size() + 1;
 	}
 	
-	public BdfDatabase serialize()
-	{
-		BdfDatabase database = new BdfDatabase(serializeSeeker());
-		
-		serialize(database);
-		
-		return database;
-	}
-	
 	private String calcIndent(BdfIndent indent, int it) {
 		String t = "";
 		for(int i=0;i<=it;i++) {
 			t += indent.indent;
 		}
 		return t;
-	}
-	
-	public String serializeHumanReadable(BdfIndent indent) {
-		return serializeHumanReadable(indent, 0);
-	}
-	
-	public String serializeHumanReadable() {
-		return serializeHumanReadable(new BdfIndent("", ""), 0);
-	}
-	
-	public String serializeHumanReadable(BdfIndent indent, int it)
-	{
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		
-		try {
-			serializeHumanReadable(stream, indent, it);
-			return stream.toString();
-		}
-		
-		catch(IOException e) {
-			return "undefined";
-		}
-	}
-	
-	public void serializeHumanReadable(OutputStream stream, BdfIndent indent) throws IOException {
-		serializeHumanReadable(stream, indent, 0);
-	}
-	
-	public void serializeHumanReadable(OutputStream stream) throws IOException {
-		serializeHumanReadable(stream, new BdfIndent("", ""), 0);
 	}
 	
 	public void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException
@@ -278,10 +238,6 @@ public class BdfObject implements IBdfType
 		if(str != null) {
 			stream.write(str.getBytes());
 		}
-	}
-	
-	public BdfObject() {
-		database = new BdfDatabase(0);
 	}
 	
 	public byte getType() {
@@ -492,7 +448,7 @@ public class BdfObject implements IBdfType
 	public BdfArray getArray()
 	{
 		if(this.type != BdfTypes.ARRAY)
-			this.setArray();
+			setArray(createArray());
 		
 		return (BdfArray)object;
 	}
@@ -500,7 +456,7 @@ public class BdfObject implements IBdfType
 	public BdfNamedList getNamedList()
 	{
 		if(this.type != BdfTypes.NAMED_LIST)
-			this.setNamedList();
+			setNamedList(createNamedList());
 		
 		return (BdfNamedList)object;
 	}
@@ -577,12 +533,16 @@ public class BdfObject implements IBdfType
 		return this;
 	}
 	
-	public BdfObject setArray() {
-		return this.setArray(new BdfArray());
+	public BdfObject createObject() {
+		return new BdfObject(lookupTable);
 	}
 	
-	public BdfObject setNamedList() {
-		return this.setNamedList(new BdfNamedList());
+	public BdfNamedList createNamedList() {
+		return new BdfNamedList(lookupTable);
+	}
+	
+	public BdfArray createArray() {
+		return new BdfArray(lookupTable);
 	}
 	
 	public BdfObject setBooleanArray(boolean[] value) {
@@ -653,85 +613,6 @@ public class BdfObject implements IBdfType
 		}
 		database = DataHelpers.getDatabase(b);
 		return this;
-	}
-	
-	// Primitives
-	public static BdfObject withInteger(int v) {
-		return (new BdfObject()).setInteger(v);
-	}
-	
-	public static BdfObject withByte(byte v) {
-		return (new BdfObject()).setByte(v);
-	}
-	
-	public static BdfObject withBoolean(boolean v) {
-		return (new BdfObject()).setBoolean(v);
-	}
-	
-	public static BdfObject withFloat(float v) {
-		return (new BdfObject()).setFloat(v);
-	}
-	
-	public static BdfObject withDouble(double v) {
-		return (new BdfObject()).setDouble(v);
-	}
-	
-	public static BdfObject withLong(long v) {
-		return (new BdfObject()).setLong(v);
-	}
-	
-	public static BdfObject withShort(short v) {
-		return (new BdfObject()).setShort(v);
-	}
-	
-	// Arrays
-	public static BdfObject withIntegerArray(int[] v) {
-		return (new BdfObject()).setIntegerArray(v);
-	}
-	
-	public static BdfObject withByteArray(byte[] v) {
-		return (new BdfObject()).setByteArray(v);
-	}
-	
-	public static BdfObject withBooleanArray(boolean[] v) {
-		return (new BdfObject()).setBooleanArray(v);
-	}
-	
-	public static BdfObject withFloatArray(float[] v) {
-		return (new BdfObject()).setFloatArray(v);
-	}
-	
-	public static BdfObject withDoubleArray(double[] v) {
-		return (new BdfObject()).setDoubleArray(v);
-	}
-	
-	public static BdfObject withLongArray(long[] v) {
-		return (new BdfObject()).setLongArray(v);
-	}
-	
-	public static BdfObject withShortArray(short[] v) {
-		return (new BdfObject()).setShortArray(v);
-	}
-	
-	// Objects
-	public static BdfObject withString(String v) {
-		return (new BdfObject()).setString(v);
-	}
-	
-	public static BdfObject withArray(BdfArray v) {
-		return (new BdfObject()).setArray(v);
-	}
-	
-	public static BdfObject withNamedList(BdfNamedList v) {
-		return (new BdfObject()).setNamedList(v);
-	}
-
-	public static BdfObject withArray() {
-		return (new BdfObject()).setArray(new BdfArray());
-	}
-	
-	public static BdfObject withNamedList() {
-		return (new BdfObject()).setNamedList(new BdfNamedList());
 	}
 
 }

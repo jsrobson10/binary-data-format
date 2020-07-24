@@ -11,12 +11,16 @@ import bdf.util.DataHelpers;
 public class BdfArray implements IBdfType, Iterable<BdfObject>
 {
 	protected ArrayList<BdfObject> elements = new ArrayList<BdfObject>();
+	protected BdfLookupTable lookupTable;
 	
-	public BdfArray() {
+	BdfArray(BdfLookupTable lookupTable) {
+		this.lookupTable = lookupTable;
 	}
 	
-	public BdfArray(IBdfDatabase data)
+	BdfArray(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
+		this.lookupTable = lookupTable;
+		
 		// Create an iterator value to loop over the data
 		int i = 0;
 		
@@ -27,7 +31,7 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 			int size = DataHelpers.getByteBuffer(data.getPointer(i, Integer.BYTES)).getInt();
 			
 			// Get the object
-			BdfObject object = new BdfObject(data.getPointer((i+Integer.BYTES), size));
+			BdfObject object = new BdfObject(lookupTable, data.getPointer((i+Integer.BYTES), size));
 			
 			// Add the object to the elements list
 			elements.add(object);
@@ -35,6 +39,18 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 			// Increase the iterator by the amount of bytes
 			i += Integer.BYTES+size;
 		}
+	}
+	
+	public BdfObject createObject() {
+		return new BdfObject(lookupTable);
+	}
+	
+	public BdfNamedList createNamedList() {
+		return new BdfNamedList(lookupTable);
+	}
+	
+	public BdfArray createArray() {
+		return new BdfArray(lookupTable);
 	}
 	
 	@Override
@@ -119,9 +135,10 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		return this;
 	}
 	
-	public BdfArray remove(int index) {
+	public BdfObject remove(int index) {
+		BdfObject bdf = elements.get(index);
 		elements.remove(index);
-		return this;
+		return bdf;
 	}
 	
 	public BdfArray remove(BdfObject bdf) {

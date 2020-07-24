@@ -12,17 +12,21 @@ public class BdfNamedList implements IBdfType
 {
 	protected class Element
 	{
-		public byte[] key;
+		public int key;
 		public BdfObject object;
 	}
 	
 	protected ArrayList<Element> elements = new ArrayList<Element>();
+	protected BdfLookupTable lookupTable;
 	
-	public BdfNamedList() {
+	BdfNamedList(BdfLookupTable lookupTable) {
+		this.lookupTable = lookupTable;
 	}
 
-	public BdfNamedList(IBdfDatabase data)
+	BdfNamedList(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
+		this.lookupTable = lookupTable;
+		
 		// Create an iterator value to loop over the data
 		int i = 0;
 		
@@ -30,15 +34,13 @@ public class BdfNamedList implements IBdfType
 		while(i < data.size())
 		{
 			// Get the key
-			int key_size = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
+			int key = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
 			i += 4;
-			byte[] key = data.getPointer(i, key_size).getBytes();
 			
 			// Get the object
-			i += key_size;
 			int object_size = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
 			i += 4;
-			BdfObject object = new BdfObject(data.getPointer(i, object_size));
+			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, object_size));
 			
 			// Create a new element and save some data to it
 			Element element = new Element();
@@ -60,13 +62,9 @@ public class BdfNamedList implements IBdfType
 		
 		for(Element o : elements)
 		{
-			database.setBytes(pos, DataHelpers.serializeInt(o.key.length));
+			database.setBytes(pos, DataHelpers.serializeInt(o.key));
 			
 			pos += 4;
-			
-			database.setBytes(pos, o.key);
-			
-			pos += o.key.length;
 			
 			int size = o.object.serialize(database.getPointer(pos + 4, database.size() - (pos + 4)));
 			
@@ -87,7 +85,6 @@ public class BdfNamedList implements IBdfType
 		for(Element o : elements)
 		{
 			size += 8;
-			size += o.key.length;
 			size += o.object.serializeSeeker();
 		}
 		
@@ -114,7 +111,7 @@ public class BdfNamedList implements IBdfType
 				stream.write(indent.indent.getBytes());
 			}
 			
-			stream.write((DataHelpers.serializeString(new String(e.key, StandardCharsets.UTF_8)) + ": ").getBytes());
+			stream.write((DataHelpers.serializeString(lookupTable.getName(e.key)) + ": ").getBytes());
 			e.object.serializeHumanReadable(stream, indent, it + 1);
 			
 			if(elements.size() > i+1) {
@@ -143,7 +140,7 @@ public class BdfNamedList implements IBdfType
 		for(Element e : elements)
 		{
 			// Is this the element key
-			if(DataHelpers.bytesAreEqual(e.key, key_bytes))
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes))
 			{
 				// Set the object
 				object = e.object;
@@ -154,7 +151,7 @@ public class BdfNamedList implements IBdfType
 		}
 		
 		// Get a bdf object
-		BdfObject o = new BdfObject();
+		BdfObject o = new BdfObject(lookupTable);
 		
 		// Set the bdf object
 		this.set(key, o);
@@ -163,7 +160,7 @@ public class BdfNamedList implements IBdfType
 		return o;
 	}
 	
-	public BdfNamedList remove(String key)
+	public BdfObject remove(String key)
 	{
 		// Convert the key to bytes
 		byte[] key_bytes = key.getBytes();
@@ -175,18 +172,13 @@ public class BdfNamedList implements IBdfType
 			Element e = elements.get(i);
 			
 			// Is the specified key the same as the elements key
-			if(DataHelpers.bytesAreEqual(e.key, key_bytes))
-			{
-				// Delete this element
-				elements.remove(i);
-				
-				// Exit out of the function, prevent NullPointException
-				return this;
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes)) {
+				return elements.remove(i).object;
 			}
 		}
 		
 		// Send back nothing
-		return this;
+		return null;
 	}
 	
 	public BdfNamedList remove(BdfObject bdf)
@@ -201,6 +193,18 @@ public class BdfNamedList implements IBdfType
 		return this;
 	}
 	
+	public BdfObject createObject() {
+		return new BdfObject(lookupTable);
+	}
+	
+	public BdfNamedList createNamedList() {
+		return new BdfNamedList(lookupTable);
+	}
+	
+	public BdfArray createArray() {
+		return new BdfArray(lookupTable);
+	}
+	
 	public BdfNamedList set(String key, BdfObject object)
 	{
 		// Convert the key to bytes
@@ -210,7 +214,7 @@ public class BdfNamedList implements IBdfType
 		for(Element e : elements)
 		{
 			// Is the key here the same as the specified key
-			if(DataHelpers.bytesAreEqual(e.key, key_bytes))
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes))
 			{
 				// Set the new object
 				e.object = object;
@@ -222,7 +226,7 @@ public class BdfNamedList implements IBdfType
 		
 		// Create a new element object
 		Element e = new Element();
-		e.key = key_bytes;
+		e.key = lookupTable.getLocation(key);
 		e.object = object;
 		
 		// Add the new element object to the elements list
@@ -241,7 +245,7 @@ public class BdfNamedList implements IBdfType
 		for(Element e : elements)
 		{
 			// Is the elements key the same as the specified key
-			if(DataHelpers.bytesAreEqual(e.key, key_bytes))
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes))
 			{
 				// Send back true to say the element was found
 				return true;
@@ -262,7 +266,7 @@ public class BdfNamedList implements IBdfType
 		{
 			// Get the element
 			Element e = elements.get(i);
-			keys[i] = new String(e.key, StandardCharsets.UTF_8);
+			keys[i] = lookupTable.getName(e.key);
 		}
 		
 		// Return the list of keys as strings

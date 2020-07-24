@@ -8,9 +8,10 @@ import java.util.zip.DeflaterOutputStream;
 
 import bdf.data.BdfDatabase;
 import bdf.types.BdfObject;
+import bdf.types.BdfReader;
 import bdf.util.FileHelpers;
 
-public class BdfFileManager extends BdfObject
+public class BdfFileManager extends BdfReader
 {
 	protected String path;
 	private boolean compressed;
