@@ -66,7 +66,7 @@ public class BdfNamedList implements IBdfType
 			
 			pos += 4;
 			
-			int size = o.object.serialize(database.getPointer(pos + 4, database.size() - (pos + 4)));
+			int size = o.object.serialize(database.getPointer(pos + 4));
 			
 			database.setBytes(pos, DataHelpers.serializeInt(size));
 			
@@ -111,7 +111,7 @@ public class BdfNamedList implements IBdfType
 				stream.write(indent.indent.getBytes());
 			}
 			
-			stream.write((DataHelpers.serializeString(lookupTable.getName(e.key)) + ": ").getBytes());
+			stream.write((DataHelpers.serializeString(new String(lookupTable.getName(e.key))) + ": ").getBytes());
 			e.object.serializeHumanReadable(stream, indent, it + 1);
 			
 			if(elements.size() > i+1) {
@@ -140,7 +140,7 @@ public class BdfNamedList implements IBdfType
 		for(Element e : elements)
 		{
 			// Is this the element key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes))
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes))
 			{
 				// Set the object
 				object = e.object;
@@ -172,7 +172,7 @@ public class BdfNamedList implements IBdfType
 			Element e = elements.get(i);
 			
 			// Is the specified key the same as the elements key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes)) {
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes)) {
 				return elements.remove(i).object;
 			}
 		}
@@ -214,7 +214,7 @@ public class BdfNamedList implements IBdfType
 		for(Element e : elements)
 		{
 			// Is the key here the same as the specified key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes))
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes))
 			{
 				// Set the new object
 				e.object = object;
@@ -226,7 +226,7 @@ public class BdfNamedList implements IBdfType
 		
 		// Create a new element object
 		Element e = new Element();
-		e.key = lookupTable.getLocation(key);
+		e.key = lookupTable.getLocation(key_bytes);
 		e.object = object;
 		
 		// Add the new element object to the elements list
@@ -245,7 +245,7 @@ public class BdfNamedList implements IBdfType
 		for(Element e : elements)
 		{
 			// Is the elements key the same as the specified key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key).getBytes(), key_bytes))
+			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes))
 			{
 				// Send back true to say the element was found
 				return true;
@@ -266,7 +266,7 @@ public class BdfNamedList implements IBdfType
 		{
 			// Get the element
 			Element e = elements.get(i);
-			keys[i] = lookupTable.getName(e.key);
+			keys[i] = new String(lookupTable.getName(e.key));
 		}
 		
 		// Return the list of keys as strings

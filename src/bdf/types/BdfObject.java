@@ -67,9 +67,9 @@ public class BdfObject implements IBdfType
 			break;
 			
 		case BdfTypes.STRING:
-			String str = (String)object;
-			size = str.length() + 1;
-			db.setBytes(0, str.getBytes());
+			byte[] str = ((String)object).getBytes();
+			size = str.length + 1;
+			db.setBytes(0, str);
 			break;
 			
 		default:
@@ -91,7 +91,7 @@ public class BdfObject implements IBdfType
 		{
 		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker() + 1;
 		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker() + 1;
-		case BdfTypes.STRING: return ((String)object).length() + 1;
+		case BdfTypes.STRING: return ((String)object).getBytes().length + 1;
 		}
 		
 		// Anything else

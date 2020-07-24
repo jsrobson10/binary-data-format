@@ -52,8 +52,8 @@ public class BdfReader
 		database.setBytes(4, DataHelpers.serializeInt(lookupTable_size));
 		database.setBytes(8 + lookupTable_size, DataHelpers.serializeInt(bdf_size));
 		
-		lookupTable.serialize(database.getPointer(8));
-		bdf.serialize(database.getPointer(12 + lookupTable_size));
+		lookupTable.serialize(database.getPointer(8, lookupTable_size));
+		bdf.serialize(database.getPointer(12 + lookupTable_size, database_size));
 		
 		return database;
 	}
