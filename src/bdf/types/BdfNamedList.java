@@ -56,17 +56,17 @@ public class BdfNamedList implements IBdfType
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database)
+	public int serialize(IBdfDatabase database, int[] locations)
 	{
 		int pos = 0;
 		
 		for(Element o : elements)
 		{
-			database.setBytes(pos, DataHelpers.serializeInt(o.key));
+			database.setBytes(pos, DataHelpers.serializeInt(locations[o.key]));
 			
 			pos += 4;
 			
-			int size = o.object.serialize(database.getPointer(pos + 4));
+			int size = o.object.serialize(database.getPointer(pos + 4), locations);
 			
 			database.setBytes(pos, DataHelpers.serializeInt(size));
 			
@@ -78,14 +78,14 @@ public class BdfNamedList implements IBdfType
 	}
 	
 	@Override
-	public int serializeSeeker()
+	public int serializeSeeker(int[] locations)
 	{
 		int size = 0;
 		
 		for(Element o : elements)
 		{
 			size += 8;
-			size += o.object.serializeSeeker();
+			size += o.object.serializeSeeker(locations);
 		}
 		
 		return size;
@@ -181,30 +181,6 @@ public class BdfNamedList implements IBdfType
 		return null;
 	}
 	
-	public BdfNamedList remove(BdfObject bdf)
-	{
-		for(int i=0;i<elements.size();i++) {
-			if(elements.get(i).object == bdf) {
-				elements.remove(i);
-				i -= 1;
-			}
-		}
-		
-		return this;
-	}
-	
-	public BdfObject createObject() {
-		return new BdfObject(lookupTable);
-	}
-	
-	public BdfNamedList createNamedList() {
-		return new BdfNamedList(lookupTable);
-	}
-	
-	public BdfArray createArray() {
-		return new BdfArray(lookupTable);
-	}
-	
 	public BdfNamedList set(String key, BdfObject object)
 	{
 		// Convert the key to bytes
@@ -275,5 +251,14 @@ public class BdfNamedList implements IBdfType
 	
 	public int size() {
 		return elements.size();
+	}
+	
+	@Override
+	public void getLocationUses(int[] locations)
+	{
+		for(Element e : elements) {
+			locations[e.key] += 1;
+			e.object.getLocationUses(locations);
+		}
 	}
 }

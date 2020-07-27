@@ -18,38 +18,37 @@ public class BdfObject implements IBdfType
 	
 	BdfObject(BdfLookupTable lookupTable) {
 		this.lookupTable = lookupTable;
+		this.database = new BdfDatabase(0);
 	}
 	
 	BdfObject(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
 		this.lookupTable = lookupTable;
 		
-		// Is the database length greater than 1
-		if(data.size() > 1)
-		{
-			// Get the type and database values
-			type = data.getByte(0);
-			database = data.getPointer(1, data.size() - 1);
-			
-			// Set the object variable if there is an object specified
-			if(type == BdfTypes.STRING) object = database.getString();
-			if(type == BdfTypes.ARRAY) object = new BdfArray(lookupTable, database);
-			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(lookupTable, database);
-			
-			if(object != null) {
-				database = null;
-			}
-		}
+		// Get the type and database values
+		type = data.getByte(0);
+		database = data.getPointer(1, data.size() - 1);
 		
-		else
-		{
-			// Create a new database
-			database = new BdfDatabase(0);
+		// Set the object variable if there is an object specified
+		if(type == BdfTypes.STRING) object = database.getString();
+		if(type == BdfTypes.ARRAY) object = new BdfArray(lookupTable, database);
+		if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(lookupTable, database);
+		
+		if(object != null) {
+			database = null;
 		}
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database)
+	public void getLocationUses(int[] locations)
+	{
+		if(type == BdfTypes.NAMED_LIST || type == BdfTypes.ARRAY) {
+			((IBdfType)object).getLocationUses(locations);
+		}
+	}
+	
+	@Override
+	public int serialize(IBdfDatabase database, int[] locations)
 	{
 		int size;
 		
@@ -59,11 +58,11 @@ public class BdfObject implements IBdfType
 		switch(type)
 		{
 		case BdfTypes.ARRAY:
-			size = ((BdfArray)object).serialize(db) + 1;
+			size = ((BdfArray)object).serialize(db, locations) + 1;
 			break;
 			
 		case BdfTypes.NAMED_LIST:
-			size = ((BdfNamedList)object).serialize(db) + 1;
+			size = ((BdfNamedList)object).serialize(db, locations) + 1;
 			break;
 			
 		case BdfTypes.STRING:
@@ -84,13 +83,13 @@ public class BdfObject implements IBdfType
 	}
 
 	@Override
-	public int serializeSeeker()
+	public int serializeSeeker(int[] locations)
 	{
 		// Objects
 		switch(type)
 		{
-		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker() + 1;
-		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker() + 1;
+		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker(locations) + 1;
+		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker(locations) + 1;
 		case BdfTypes.STRING: return ((String)object).getBytes().length + 1;
 		}
 		
@@ -158,7 +157,7 @@ public class BdfObject implements IBdfType
 			int[] array = this.getIntegerArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Integer.toString(array[i]) + "I").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -169,7 +168,7 @@ public class BdfObject implements IBdfType
 			boolean[] array = this.getBooleanArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + (array[i] ? "true" : "false")).getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -180,7 +179,7 @@ public class BdfObject implements IBdfType
 			short[] array = this.getShortArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Short.toString(array[i]) + "S").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -191,7 +190,7 @@ public class BdfObject implements IBdfType
 			long[] array = this.getLongArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Long.toString(array[i]) + "L").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -202,7 +201,7 @@ public class BdfObject implements IBdfType
 			byte[] array = this.getByteArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Byte.toString(array[i]) + "B").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -213,7 +212,7 @@ public class BdfObject implements IBdfType
 			double[] array = this.getDoubleArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Double.toString(array[i]) + "D").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -224,7 +223,7 @@ public class BdfObject implements IBdfType
 			float[] array = this.getFloatArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Float.toString(array[i]) + "F").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -448,7 +447,7 @@ public class BdfObject implements IBdfType
 	public BdfArray getArray()
 	{
 		if(this.type != BdfTypes.ARRAY)
-			setArray(createArray());
+			setArray(newArray());
 		
 		return (BdfArray)object;
 	}
@@ -456,7 +455,7 @@ public class BdfObject implements IBdfType
 	public BdfNamedList getNamedList()
 	{
 		if(this.type != BdfTypes.NAMED_LIST)
-			setNamedList(createNamedList());
+			setNamedList(newNamedList());
 		
 		return (BdfNamedList)object;
 	}
@@ -533,15 +532,15 @@ public class BdfObject implements IBdfType
 		return this;
 	}
 	
-	public BdfObject createObject() {
+	public BdfObject newObject() {
 		return new BdfObject(lookupTable);
 	}
 	
-	public BdfNamedList createNamedList() {
+	public BdfNamedList newNamedList() {
 		return new BdfNamedList(lookupTable);
 	}
 	
-	public BdfArray createArray() {
+	public BdfArray newArray() {
 		return new BdfArray(lookupTable);
 	}
 	

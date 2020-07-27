@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 
 public class FileHelpers
@@ -50,7 +51,7 @@ public class FileHelpers
 	public static byte[] readAllCompressed(String path) throws IOException
 	{
 		// Create the file input stream
-		InflaterInputStream in = new InflaterInputStream(new FileInputStream(path));
+		GZIPInputStream in = new GZIPInputStream(new FileInputStream(path));
 		
 		// Load all of its data
 		byte[] data = readAll(in);

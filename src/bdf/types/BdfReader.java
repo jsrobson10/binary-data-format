@@ -13,9 +13,13 @@ public class BdfReader
 	protected BdfLookupTable lookupTable;
 	protected BdfObject bdf;
 	
-	public BdfReader() {
-		lookupTable = new BdfLookupTable();
+	private void initNew() {
+		lookupTable = new BdfLookupTable(this);
 		bdf = new BdfObject(lookupTable);
+	}
+	
+	public BdfReader() {
+		initNew();
 	}
 	
 	public BdfReader(byte[] database) {
@@ -24,58 +28,54 @@ public class BdfReader
 	
 	public BdfReader(IBdfDatabase database)
 	{
-		// Check the version of the BDF file
-		if(!"BDF3".contentEquals(new String(database.getBytes(0, 4)))) {
-			lookupTable = new BdfLookupTable();
-			bdf = new BdfObject(lookupTable);
+		if(database.size() < 4) {
+			initNew();
 			return;
 		}
 		
 		// Get the lookup table
-		int lookupTable_size = DataHelpers.getByteBuffer(database.getPointer(4, 4)).getInt();
-		lookupTable = new BdfLookupTable(database.getPointer(8, lookupTable_size));
+		int lookupTable_size = DataHelpers.getByteBuffer(database.getPointer(0, 4)).getInt();
+		lookupTable = new BdfLookupTable(this, database.getPointer(4, lookupTable_size));
 		
 		// Get the rest of the data
-		int upto = lookupTable_size + 8;
+		int upto = lookupTable_size + 4;
 		int bdf_size = DataHelpers.getByteBuffer(database.getPointer(upto, 4)).getInt();
 		bdf = new BdfObject(lookupTable, database.getPointer(upto + 4, bdf_size));
 	}
 	
 	public BdfDatabase serialize()
 	{
-		int bdf_size = bdf.serializeSeeker();
-		int lookupTable_size = lookupTable.serializeSeeker();
-		int database_size = bdf_size + lookupTable_size + 12;
+		int[] locations = lookupTable.serializeGetLocations();
+		
+		int bdf_size = bdf.serializeSeeker(locations);
+		int lookupTable_size = lookupTable.serializeSeeker(locations);
+		int database_size = bdf_size + lookupTable_size + 8;
 		BdfDatabase database = new BdfDatabase(database_size);
 		
-		database.setBytes(0, "BDF3".getBytes());
-		database.setBytes(4, DataHelpers.serializeInt(lookupTable_size));
-		database.setBytes(8 + lookupTable_size, DataHelpers.serializeInt(bdf_size));
+		database.setBytes(0, DataHelpers.serializeInt(lookupTable_size));
+		database.setBytes(4 + lookupTable_size, DataHelpers.serializeInt(bdf_size));
 		
-		lookupTable.serialize(database.getPointer(8, lookupTable_size));
-		bdf.serialize(database.getPointer(12 + lookupTable_size, database_size));
+		lookupTable.serialize(database.getPointer(4, lookupTable_size), locations);
+		bdf.serialize(database.getPointer(8 + lookupTable_size, database_size), locations);
 		
 		return database;
 	}
 	
-	public BdfObject getBDF() {
+	public BdfObject getObject() {
 		return bdf;
 	}
 	
-	public String serializeHumanReadable(BdfIndent indent) {
-		return serializeHumanReadable(indent, 0);
+	public BdfObject resetObject() {
+		bdf = new BdfObject(lookupTable);
+		return bdf;
 	}
 	
-	public String serializeHumanReadable() {
-		return serializeHumanReadable(new BdfIndent("", ""), 0);
-	}
-	
-	public String serializeHumanReadable(BdfIndent indent, int it)
+	public String serializeHumanReadable(BdfIndent indent)
 	{
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		
 		try {
-			bdf.serializeHumanReadable(stream, indent, it);
+			bdf.serializeHumanReadable(stream, indent, 0);
 			return stream.toString();
 		}
 		
@@ -84,23 +84,19 @@ public class BdfReader
 		}
 	}
 	
-	public void serializeHumanReadable(OutputStream stream, BdfIndent indent) throws IOException {
+	public String serializeHumanReadable() {
+		return serializeHumanReadable(new BdfIndent("", ""));
+	}
+	
+	public void serializeHumanReadable(OutputStream stream, BdfIndent indent) throws IOException
+	{
 		bdf.serializeHumanReadable(stream, indent, 0);
+		
+		stream.write('\n');
+		stream.flush();
 	}
 	
 	public void serializeHumanReadable(OutputStream stream) throws IOException {
-		bdf.serializeHumanReadable(stream, new BdfIndent("", ""), 0);
-	}
-	
-	public BdfObject createObject() {
-		return new BdfObject(lookupTable);
-	}
-	
-	public BdfNamedList createNamedList() {
-		return new BdfNamedList(lookupTable);
-	}
-	
-	public BdfArray createArray() {
-		return new BdfArray(lookupTable);
+		serializeHumanReadable(stream, new BdfIndent("", ""));
 	}
 }

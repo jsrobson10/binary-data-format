@@ -41,25 +41,13 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		}
 	}
 	
-	public BdfObject createObject() {
-		return new BdfObject(lookupTable);
-	}
-	
-	public BdfNamedList createNamedList() {
-		return new BdfNamedList(lookupTable);
-	}
-	
-	public BdfArray createArray() {
-		return new BdfArray(lookupTable);
-	}
-	
 	@Override
-	public int serializeSeeker()
+	public int serializeSeeker(int[] locations)
 	{
 		int size = 0;
 		
 		for(BdfObject o : elements) {
-			size += o.serializeSeeker();
+			size += o.serializeSeeker(locations);
 			size += 4;
 		}
 		
@@ -67,13 +55,13 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database)
+	public int serialize(IBdfDatabase database, int[] locations)
 	{
 		int pos = 0;
 		
 		for(BdfObject o : elements)
 		{
-			int size = o.serialize(database.getPointer(pos + 4));
+			int size = o.serialize(database.getPointer(pos + 4), locations);
 			database.setBytes(pos, DataHelpers.serializeInt(size));
 			
 			pos += size;
@@ -189,6 +177,13 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 				elements.remove(i);
 			}
 		};
+	}
+	
+	@Override
+	public void getLocationUses(int[] locations) {
+		for(BdfObject element : elements) {
+			element.getLocationUses(locations);
+		}
 	}
 
 }
