@@ -26,8 +26,15 @@ public class BdfObject implements IBdfType
 		this.lookupTable = lookupTable;
 		
 		// Get the type and database values
-		type = data.getByte(0);
-		database = data.getPointer(1, data.size() - 1);
+		byte flags = data.getByte(0);
+
+		type = flags & 0x0f;
+		database = data.getPointer(1);
+		
+		// Skip the size bytes if size is stored
+		if(shouldStoreSize(type)) {
+			database = database.getPointer(4 - (flags & 0b00110000) >> 4);
+		}
 		
 		// Set the object variable if there is an object specified
 		if(type == BdfTypes.STRING) object = database.getString();
@@ -36,6 +43,49 @@ public class BdfObject implements IBdfType
 		
 		if(object != null) {
 			database = null;
+		}
+	}
+	
+	private boolean shouldStoreSize(byte b) {
+		return b > 7;
+	}
+	
+	static int getSize(IBdfDatabase db)
+	{
+		byte type = db.getByte(0);
+		int size = getSize(type);
+		
+		if(size != -1) {
+			return size;
+		}
+		
+		return DataHelpers.getByteBuffer(db.getPointer(1, 4)).getInt() + 5;
+	}
+	
+	static int getSize(byte type)
+	{
+		type &= 0x0f;
+
+		switch(type)
+		{
+		case BdfTypes.BOOLEAN:
+			return 2;
+		case BdfTypes.BYTE:
+			return 2;
+		case BdfTypes.DOUBLE:
+			return 9;
+		case BdfTypes.FLOAT:
+			return 5;
+		case BdfTypes.INTEGER:
+			return 5;
+		case BdfTypes.LONG:
+			return 9;
+		case BdfTypes.SHORT:
+			return 3;
+		case BdfTypes.UNDEFINED:
+			return 1;
+		default:
+			return -1;
 		}
 	}
 	
@@ -52,32 +102,37 @@ public class BdfObject implements IBdfType
 	{
 		int size;
 		
-		IBdfDatabase db = database.getPointer(1);
+		boolean storeSize = shouldStoreSize(type);
 		
 		// Objects
 		switch(type)
 		{
 		case BdfTypes.ARRAY:
-			size = ((BdfArray)object).serialize(db, locations) + 1;
+			size = ((BdfArray)object).serialize(database.getPointer(5), locations) + 5;
 			break;
 			
 		case BdfTypes.NAMED_LIST:
-			size = ((BdfNamedList)object).serialize(db, locations) + 1;
+			size = ((BdfNamedList)object).serialize(database.getPointer(5), locations) + 5;
 			break;
 			
 		case BdfTypes.STRING:
 			byte[] str = ((String)object).getBytes();
-			size = str.length + 1;
-			db.setBytes(0, str);
+			size = str.length + 5;
+			database.setBytes(5, str);
 			break;
 			
 		default:
-			size = this.database.size() + 1;
-			db.setBytes(0, this.database.getBytes());
+			int o = storeSize ? 5 : 1;
+			size = this.database.size() + o;
+			database.setBytes(o, this.database.getBytes());
 			break;
 		}
 		
 		database.setByte(0, type);
+		
+		if(storeSize) {
+			database.setBytes(1, DataHelpers.serializeInt(size - 5));
+		}
 		
 		return size;
 	}
@@ -88,13 +143,18 @@ public class BdfObject implements IBdfType
 		// Objects
 		switch(type)
 		{
-		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker(locations) + 1;
-		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker(locations) + 1;
-		case BdfTypes.STRING: return ((String)object).getBytes().length + 1;
+		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker(locations) + 5;
+		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker(locations) + 5;
+		case BdfTypes.STRING: return ((String)object).getBytes().length + 5;
 		}
 		
-		// Anything else
-		return database.size() + 1;
+		int size = getSize(type);
+		
+		if(size != -1) {
+			return size;
+		}
+		
+		return database.size() + 5;
 	}
 	
 	private String calcIndent(BdfIndent indent, int it) {

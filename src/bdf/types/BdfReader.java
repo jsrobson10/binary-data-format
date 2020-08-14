@@ -39,8 +39,8 @@ public class BdfReader
 		
 		// Get the rest of the data
 		int upto = lookupTable_size + 4;
-		int bdf_size = DataHelpers.getByteBuffer(database.getPointer(upto, 4)).getInt();
-		bdf = new BdfObject(lookupTable, database.getPointer(upto + 4, bdf_size));
+		int bdf_size = BdfObject.getSize(database.getPointer(upto));
+		bdf = new BdfObject(lookupTable, database.getPointer(upto, bdf_size));
 	}
 	
 	public BdfDatabase serialize()
@@ -49,14 +49,13 @@ public class BdfReader
 		
 		int bdf_size = bdf.serializeSeeker(locations);
 		int lookupTable_size = lookupTable.serializeSeeker(locations);
-		int database_size = bdf_size + lookupTable_size + 8;
+		int database_size = bdf_size + lookupTable_size + 4;
 		BdfDatabase database = new BdfDatabase(database_size);
 		
 		database.setBytes(0, DataHelpers.serializeInt(lookupTable_size));
-		database.setBytes(4 + lookupTable_size, DataHelpers.serializeInt(bdf_size));
 		
 		lookupTable.serialize(database.getPointer(4, lookupTable_size), locations);
-		bdf.serialize(database.getPointer(8 + lookupTable_size, database_size), locations);
+		bdf.serialize(database.getPointer(4 + lookupTable_size, database_size), locations);
 		
 		return database;
 	}

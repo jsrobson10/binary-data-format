@@ -38,8 +38,7 @@ public class BdfNamedList implements IBdfType
 			i += 4;
 			
 			// Get the object
-			int object_size = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
-			i += 4;
+			int object_size = BdfObject.getSize(data.getPointer(i));
 			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, object_size));
 			
 			// Create a new element and save some data to it
@@ -64,14 +63,9 @@ public class BdfNamedList implements IBdfType
 		{
 			database.setBytes(pos, DataHelpers.serializeInt(locations[o.key]));
 			
-			pos += 4;
-			
 			int size = o.object.serialize(database.getPointer(pos + 4), locations);
 			
-			database.setBytes(pos, DataHelpers.serializeInt(size));
-			
-			pos += 4;
-			pos += size;
+			pos += size + 4;
 		}
 		
 		return pos;
@@ -84,7 +78,7 @@ public class BdfNamedList implements IBdfType
 		
 		for(Element o : elements)
 		{
-			size += 8;
+			size += 4;
 			size += o.object.serializeSeeker(locations);
 		}
 		
@@ -128,19 +122,16 @@ public class BdfNamedList implements IBdfType
 		stream.write('}');
 	}
 	
-	public BdfObject get(String key)
+	public BdfObject get(int key)
 	{
 		// Get the object to send back
 		BdfObject object = null;
-		
-		// Convert the key to bytes
-		byte[] key_bytes = key.getBytes();
 		
 		// Loop over the elements
 		for(Element e : elements)
 		{
 			// Is this the element key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes))
+			if(e.key == key)
 			{
 				// Set the object
 				object = e.object;
@@ -160,11 +151,8 @@ public class BdfNamedList implements IBdfType
 		return o;
 	}
 	
-	public BdfObject remove(String key)
+	public BdfObject remove(int key)
 	{
-		// Convert the key to bytes
-		byte[] key_bytes = key.getBytes();
-		
 		// Loop over the elements
 		for(int i=0;i<elements.size();i++)
 		{
@@ -172,7 +160,7 @@ public class BdfNamedList implements IBdfType
 			Element e = elements.get(i);
 			
 			// Is the specified key the same as the elements key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes)) {
+			if(e.key == key) {
 				return elements.remove(i).object;
 			}
 		}
@@ -181,16 +169,13 @@ public class BdfNamedList implements IBdfType
 		return null;
 	}
 	
-	public BdfNamedList set(String key, BdfObject object)
+	public BdfNamedList set(int key, BdfObject object)
 	{
-		// Convert the key to bytes
-		byte[] key_bytes = key.getBytes();
-		
 		// Loop over the elements, does it already exist
 		for(Element e : elements)
 		{
 			// Is the key here the same as the specified key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes))
+			if(e.key == key)
 			{
 				// Set the new object
 				e.object = object;
@@ -202,8 +187,8 @@ public class BdfNamedList implements IBdfType
 		
 		// Create a new element object
 		Element e = new Element();
-		e.key = lookupTable.getLocation(key_bytes);
 		e.object = object;
+		e.key = key;
 		
 		// Add the new element object to the elements list
 		elements.add(e);
@@ -212,16 +197,13 @@ public class BdfNamedList implements IBdfType
 		return this;
 	}
 	
-	public boolean contains(String key)
+	public boolean contains(int key)
 	{
-		// Convert the key to bytes
-		byte[] key_bytes = key.getBytes();
-		
 		// Loop over the elements
 		for(Element e : elements)
 		{
 			// Is the elements key the same as the specified key
-			if(DataHelpers.bytesAreEqual(lookupTable.getName(e.key), key_bytes))
+			if(e.key == key)
 			{
 				// Send back true to say the element was found
 				return true;
@@ -232,21 +214,45 @@ public class BdfNamedList implements IBdfType
 		return false;
 	}
 	
-	public String[] getKeys()
+	public int[] getKeys()
 	{
 		// Get the keys to send back
-		String[] keys = new String[elements.size()];
+		int[] keys = new int[elements.size()];
 		
 		// Loop over the elements
 		for(int i=0;i<elements.size();i++)
 		{
 			// Get the element
 			Element e = elements.get(i);
-			keys[i] = new String(lookupTable.getName(e.key));
+			keys[i] = e.key;
 		}
 		
 		// Return the list of keys as strings
 		return keys;
+	}
+	
+	public int getKeyLocation(String key) {
+		return lookupTable.getLocation(key.getBytes());
+	}
+	
+	public String getKeyName(int key) {
+		return new String(lookupTable.getName(key));
+	}
+	
+	public boolean contains(String key) {
+		return contains(lookupTable.getLocation(key.getBytes()));
+	}
+	
+	public BdfNamedList set(String key, BdfObject object) {
+		return set(lookupTable.getLocation(key.getBytes()), object);
+	}
+	
+	public BdfObject remove(String key) {
+		return remove(lookupTable.getLocation(key.getBytes()));
+	}
+	
+	public BdfObject get(String key) {
+		return get(lookupTable.getLocation(key.getBytes()));
 	}
 	
 	public int size() {

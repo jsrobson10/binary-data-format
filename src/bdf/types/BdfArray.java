@@ -28,16 +28,16 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		while(i < data.size())
 		{
 			// Get the size of the object
-			int size = DataHelpers.getByteBuffer(data.getPointer(i, Integer.BYTES)).getInt();
+			int size = BdfObject.getSize(data.getPointer(i));
 			
 			// Get the object
-			BdfObject object = new BdfObject(lookupTable, data.getPointer((i+Integer.BYTES), size));
+			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, size));
 			
 			// Add the object to the elements list
 			elements.add(object);
 			
 			// Increase the iterator by the amount of bytes
-			i += Integer.BYTES+size;
+			i += size;
 		}
 	}
 	
@@ -48,7 +48,6 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		
 		for(BdfObject o : elements) {
 			size += o.serializeSeeker(locations);
-			size += 4;
 		}
 		
 		return size;
@@ -59,13 +58,8 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	{
 		int pos = 0;
 		
-		for(BdfObject o : elements)
-		{
-			int size = o.serialize(database.getPointer(pos + 4), locations);
-			database.setBytes(pos, DataHelpers.serializeInt(size));
-			
-			pos += size;
-			pos += 4;
+		for(BdfObject o : elements) {
+			pos += o.serialize(database.getPointer(pos), locations);
 		}
 		
 		return pos;
