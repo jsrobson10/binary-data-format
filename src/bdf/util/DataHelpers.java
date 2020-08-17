@@ -7,6 +7,10 @@ import bdf.data.IBdfDatabase;
 
 public class DataHelpers
 {
+	private static final char[] HEX = {
+			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+	};
+	
 	public static ByteBuffer getByteBuffer(IBdfDatabase db) {
 		return ByteBuffer.wrap(db.getBytes());
 	}
@@ -17,7 +21,7 @@ public class DataHelpers
 	
 	public static byte[] serializeInt(int value)
 	{
-		ByteBuffer buffer = ByteBuffer.allocate(Integer.SIZE/8);
+		ByteBuffer buffer = ByteBuffer.allocate(4);
 		buffer.putInt(value);
 		return buffer.array();
 	}
@@ -64,21 +68,110 @@ public class DataHelpers
 		return string_modified;
 	}
 	
+	public static char[] replaceInCharArray(char[] chars, char find, String replace)
+	{
+		char[] replace_chars = replace.toCharArray();
+		int replace_size = replace.length();
+		
+		int size = 0;
+		
+		// Get the new size of the char array
+		for(int i=0;i<chars.length;i++) {
+			if(chars[i] == find) {
+				size += replace_size;
+			} else {
+				size += 1;
+			}
+		}
+		
+		char[] chars_modified = new char[size];
+		int upto = 0;
+		
+		// Replace the contents of the char array
+		for(int i=0;i<chars.length;i++)
+		{
+			if(chars[i] == find)
+			{
+				for(int j=0;j<replace_size;j++) {
+					chars_modified[upto+j] = replace_chars[j];
+				}
+				
+				upto += replace_size;
+			}
+			
+			else
+			{
+				chars_modified[upto] = chars[i];
+				upto += 1;
+			}
+		}
+		
+		return chars_modified;
+	}
+	
 	public static String serializeString(String string)
 	{
-		// Serialize the string
-		String serialized = string;
+		char[] string_chars = string.toCharArray();
 		
 		// Replace some parts of the string
-		serialized = replaceInString(serialized, '\\', "\\\\");
-		serialized = replaceInString(serialized, '"', "\\\"");
-		serialized = replaceInString(serialized, '\n', "\\n");
-		serialized = replaceInString(serialized, '\t', "\\t");
+		string_chars = replaceInCharArray(string_chars, '\\', "\\\\");
+		string_chars = replaceInCharArray(string_chars, '"', "\\\"");
+		string_chars = replaceInCharArray(string_chars, '\n', "\\n");
+		string_chars = replaceInCharArray(string_chars, '\t', "\\t");
+		
+		// Replace all the unreadable parts of the string
+		{
+			int size = 0;
+			
+			for(int i=0;i<string_chars.length;i++)
+			{
+				char c = string_chars[i];
+				
+				if(c < 0x20 || (c > 0x7e && c < 0xa1) || c == 0xad)
+				{
+					// Will be in the format \u0000
+					size += 6;
+				}
+				
+				else
+				{
+					size += 1;
+				}
+			}
+			
+			char[] chars = new char[size];
+			int upto = 0;
+			
+			for(int i=0;i<string_chars.length;i++)
+			{
+				char c = string_chars[i];
+				
+				if(c < 0x20 || (c > 0x7e && c < 0xa1) || c == 0xad)
+				{
+					// Will be in the format \u0000
+					chars[upto] = '\\';
+					chars[upto+1] = 'u';
+					chars[upto+2] = HEX[(c & 0xf000) >> 12];
+					chars[upto+3] = HEX[(c & 0x0f00) >> 8];
+					chars[upto+4] = HEX[(c & 0x00f0) >> 4];
+					chars[upto+5] = HEX[(c & 0x000f)];
+					upto += 6;
+				}
+				
+				else
+				{
+					chars[upto] = string_chars[i];
+					upto += 1;
+				}
+			}
+			
+			string_chars = chars;
+		}
 		
 		// Add quotes to the string
-		serialized = "\"" + serialized + "\"";
+		string = "\"" + new String(string_chars) + "\"";
 		
 		// Return the serialized string
-		return serialized;
+		return string;
 	}
 }

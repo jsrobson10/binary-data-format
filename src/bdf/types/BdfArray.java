@@ -5,21 +5,68 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
+import bdf.util.BdfError;
 import bdf.util.DataHelpers;
 
 public class BdfArray implements IBdfType, Iterable<BdfObject>
 {
-	protected ArrayList<BdfObject> elements = new ArrayList<BdfObject>();
+	protected ArrayList<BdfObject> elements;
 	protected BdfLookupTable lookupTable;
 	
-	BdfArray(BdfLookupTable lookupTable) {
+	BdfArray(BdfLookupTable lookupTable, BdfStringPointer ptr)
+	{
 		this.lookupTable = lookupTable;
+		this.elements = new ArrayList<BdfObject>();
+		
+		ptr.increment();
+		
+		// [..., ...]
+		while(true)
+		{
+			ptr.ignoreBlanks();
+			
+			if(ptr.getChar() == ']') {
+				ptr.increment();
+				return;
+			}
+			
+			add(new BdfObject(lookupTable, ptr));
+			
+			// There should be a comma after this
+			ptr.ignoreBlanks();
+			
+			char c = ptr.getChar();
+			
+			if(c == ']') {
+				ptr.increment();
+				return;
+			}
+			
+			if(c != ',') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			}
+			
+			ptr.increment();
+			ptr.ignoreBlanks();
+		}
+	}
+	
+	BdfArray(BdfLookupTable lookupTable, int size)
+	{
+		this.lookupTable = lookupTable;
+		this.elements = new ArrayList<BdfObject>(size);
+		
+		for(int i=0;i<size;i++) {
+			this.elements.set(i, new BdfObject(lookupTable));
+		}
 	}
 	
 	BdfArray(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
 		this.lookupTable = lookupTable;
+		this.elements = new ArrayList<BdfObject>();
 		
 		// Create an iterator value to loop over the data
 		int i = 0;
@@ -54,12 +101,12 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database, int[] locations)
+	public int serialize(IBdfDatabase database, int[] locations, int[] map, byte flags)
 	{
 		int pos = 0;
 		
 		for(BdfObject o : elements) {
-			pos += o.serialize(database.getPointer(pos), locations);
+			pos += o.serialize(database.getPointer(pos), locations, map, (byte)0);
 		}
 		
 		return pos;

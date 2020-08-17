@@ -8,7 +8,7 @@ import bdf.data.IBdfDatabase;
 interface IBdfType
 {
 	void getLocationUses(int[] locations);
-	int serialize(IBdfDatabase database, int[] locations);
+	int serialize(IBdfDatabase database, int[] locations, int[] map, byte flags);
 	int serializeSeeker(int[] locations);
 	
 	void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException;

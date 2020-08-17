@@ -1,0 +1,22 @@
+{
+	"name": "Josua", 
+	"age": 17I, 
+	"anArray": [
+		"hi =)", 
+		69B
+	], 
+	"anIntArray": int(		
+		432I, 
+		234I, 
+		69I, 
+		2I, 
+		423I
+	), 
+	"array2": [
+		bool(			
+			false, true ,
+			true , true ,
+			true , false,
+		)
+	]
+}

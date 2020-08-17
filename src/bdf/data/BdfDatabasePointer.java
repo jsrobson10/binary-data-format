@@ -3,22 +3,29 @@ package bdf.data;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class BdfDatabase implements IBdfDatabase
+public class BdfDatabasePointer implements IBdfDatabase
 {
-	static final int STREAM_CHUNK_SIZE = 1024*1024;
-	
 	byte[] database;
+	int location;
+	int size;
 	
-	public BdfDatabase(byte[] bytes) {
+	public BdfDatabasePointer(byte[] bytes) {
 		database = bytes;
+		size = bytes.length;
+		location = 0;
 	}
 	
-	public BdfDatabase(String str) {
+	public BdfDatabasePointer(String str) {
 		this(str.getBytes());
 	}
 	
-	public BdfDatabase(int size) {
+	public BdfDatabasePointer(int size) {
 		this.database = new byte[size];
+		this.location = 0;
+		this.size = size;
+	}
+	
+	BdfDatabasePointer() {
 	}
 	
 	@Override
@@ -27,7 +34,7 @@ public class BdfDatabase implements IBdfDatabase
 		byte[] database = new byte[end - start];
 		
 		for(int i=0;i<end-start;i++) {
-			database[i] = this.database[i + start];
+			database[i] = this.database[i + start + location];
 		}
 		
 		return new BdfDatabase(database);
@@ -35,12 +42,12 @@ public class BdfDatabase implements IBdfDatabase
 	
 	@Override
 	public byte getByte() {
-		return database[0];
+		return database[location];
 	}
 	
 	@Override
 	public byte getByte(int i) {
-		return database[i];
+		return database[location + i];
 	}
 	
 	@Override
@@ -49,7 +56,7 @@ public class BdfDatabase implements IBdfDatabase
 		byte[] database = new byte[size];
 		
 		for(int i=0;i<size;i++) {
-			database[i] = this.database[i + start];
+			database[i] = this.database[i + location + start];
 		}
 		
 		return database;
@@ -57,7 +64,7 @@ public class BdfDatabase implements IBdfDatabase
 	
 	@Override
 	public byte[] getBytes() {
-		return getBytes(0, database.length);
+		return getBytes(0, size);
 	}
 	
 	@Override
@@ -66,7 +73,7 @@ public class BdfDatabase implements IBdfDatabase
 		BdfDatabasePointer db = new BdfDatabasePointer();
 		
 		db.database = database;
-		db.location = location;
+		db.location = this.location + location;
 		db.size = size;
 		
 		return db;
@@ -74,62 +81,45 @@ public class BdfDatabase implements IBdfDatabase
 	
 	@Override
 	public IBdfDatabase getPointer(int location) {
-		return getPointer(location, location);
+		return getPointer(location, size - location);
 	}
 	
 	@Override
 	public int size() {
-		return database.length;
+		return size;
 	}
 	
 	@Override
 	public String getString() {
-		return new String(database);
+		return new String(database, location, size);
 	}
 	
 	@Override
 	public void writeToStream(OutputStream stream, int start, int size) throws IOException
 	{
-		for(int i=0;i<size;i+=STREAM_CHUNK_SIZE)
+		for(int i=0;i<size;i+=BdfDatabase.STREAM_CHUNK_SIZE)
 		{
-			if(size - i < STREAM_CHUNK_SIZE) {
+			if(size - i < BdfDatabase.STREAM_CHUNK_SIZE) {
 				stream.write(getBytes(i + start, size - i));
 			} else {
-				stream.write(getBytes(i + start, STREAM_CHUNK_SIZE));
+				stream.write(getBytes(i + start, BdfDatabase.STREAM_CHUNK_SIZE));
 			}
 		}
 	}
 	
 	@Override
 	public void writeToStream(OutputStream stream) throws IOException {
-		writeToStream(stream, 0, database.length);
-	}
-	
-	public static IBdfDatabase add(IBdfDatabase b1, IBdfDatabase b2)
-	{
-		byte[] bytes = new byte[b1.size() + b2.size()];
-		int b1_size = b1.size();
-		
-		for(int i=0;i<bytes.length;i++)
-		{
-			if(i >= b1_size) {
-				bytes[i] = b2.getByte(i - b1_size);
-			} else {
-				bytes[i] = b1.getByte(i);
-			}
-		}
-		
-		return new BdfDatabase(bytes);
+		writeToStream(stream, 0, size);
 	}
 	
 	@Override
 	public void setByte(int pos, byte b) {
-		database[pos] = b;
+		database[pos + location] = b;
 	}
 	
 	@Override
 	public void setByte(byte b) {
-		database[0] = b;
+		database[location] = b;
 	}
 	
 	@Override
@@ -146,7 +136,7 @@ public class BdfDatabase implements IBdfDatabase
 	public void setBytes(IBdfDatabase bytes, int offset, int length)
 	{
 		for(int i=0;i<length;i++) {
-			database[offset + i] = bytes.getByte(i);
+			database[offset + location + i] = bytes.getByte(i);
 		}
 	}
 	
@@ -154,7 +144,7 @@ public class BdfDatabase implements IBdfDatabase
 	public void setBytes(byte[] bytes, int offset, int length)
 	{
 		for(int i=0;i<length;i++) {
-			database[offset + i] = bytes[i];
+			database[offset + location + i] = bytes[i];
 		}
 	}
 	

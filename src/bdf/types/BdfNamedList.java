@@ -2,10 +2,13 @@ package bdf.types;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
+import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
+import bdf.util.BdfError;
 import bdf.util.DataHelpers;
 
 public class BdfNamedList implements IBdfType
@@ -18,6 +21,59 @@ public class BdfNamedList implements IBdfType
 	
 	protected ArrayList<Element> elements = new ArrayList<Element>();
 	protected BdfLookupTable lookupTable;
+	
+	BdfNamedList(BdfLookupTable lookupTable, BdfStringPointer ptr)
+	{
+		this.lookupTable = lookupTable;
+		ptr.increment();
+		
+		// {"key": ..., "key2": ...}
+		while(true)
+		{
+			ptr.ignoreBlanks();
+			
+			char c = ptr.getChar();
+			
+			if(c == '}') {
+				ptr.increment();
+				break;
+			}
+			
+			if(c != '"') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			}
+			
+			String key = ptr.getQuotedString();
+			
+			// There should be a colon after this
+			ptr.ignoreBlanks();
+			if(ptr.getChar() != ':') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			}
+			
+			ptr.increment();
+			ptr.ignoreBlanks();
+			
+			set(key, new BdfObject(lookupTable, ptr));
+			
+			// There should be a comma after this
+			ptr.ignoreBlanks();
+			
+			c = ptr.getChar();
+			
+			if(c == '}') {
+				ptr.increment();
+				return;
+			}
+			
+			if(c != ',') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			}
+			
+			ptr.increment();
+			ptr.ignoreBlanks();
+		}
+	}
 	
 	BdfNamedList(BdfLookupTable lookupTable) {
 		this.lookupTable = lookupTable;
@@ -33,13 +89,45 @@ public class BdfNamedList implements IBdfType
 		// Loop over the data
 		while(i < data.size())
 		{
-			// Get the key
-			int key = DataHelpers.getByteBuffer(data.getPointer(i, 4)).getInt();
-			i += 4;
-			
 			// Get the object
-			int object_size = BdfObject.getSize(data.getPointer(i));
+			int key_size = 0;
+			IBdfDatabase flag_ptr = data.getPointer(i);
+			int object_size = BdfObject.getSize(flag_ptr);
+			byte key_size_bytes = BdfObject.getParentFlags(flag_ptr);
 			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, object_size));
+			i += object_size;
+			
+			switch(key_size_bytes)
+			{
+			case 2:
+				key_size = 1;
+				break;
+			case 1:
+				key_size = 2;
+				break;
+			case 0:
+				key_size = 4;
+				break;
+			}
+			
+			// Get the key
+			ByteBuffer key_buff = DataHelpers.getByteBuffer(data.getPointer(i, key_size));
+			int key = 0;
+			
+			switch(key_size_bytes)
+			{
+			case 2:
+				key = 0xff & key_buff.get();
+				break;
+			case 1:
+				key = 0xffff & key_buff.getShort();
+				break;
+			case 0:
+				key = key_buff.getInt();
+				break;
+			}
+			
+			i += key_size;
 			
 			// Create a new element and save some data to it
 			Element element = new Element();
@@ -48,24 +136,41 @@ public class BdfNamedList implements IBdfType
 			
 			// Add the object to the elements list
 			elements.add(element);
-			
-			// Increase the iterator by the amount of bytes
-			i += object_size;
 		}
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database, int[] locations)
+	public int serialize(IBdfDatabase database, int[] locations, int[] map, byte flags)
 	{
 		int pos = 0;
 		
 		for(Element o : elements)
 		{
-			database.setBytes(pos, DataHelpers.serializeInt(locations[o.key]));
+			int location = locations[o.key];
+			byte size_bytes_tag;
+			byte size_bytes;
 			
-			int size = o.object.serialize(database.getPointer(pos + 4), locations);
+			if(location > 65535) {		// >= 2 ^ 16
+				size_bytes_tag = 0;
+				size_bytes = 4;
+			} else if(location > 255) {	// >= 2 ^ 8
+				size_bytes_tag = 1;
+				size_bytes = 2;
+			} else {					// < 2 ^ 8
+				size_bytes_tag = 2;
+				size_bytes = 1;
+			}
 			
-			pos += size + 4;
+			int size = o.object.serialize(database.getPointer(pos), locations, map, size_bytes_tag);
+			int offset = pos + size;
+			
+			byte[] bytes = DataHelpers.serializeInt(location);
+			
+			for(int i=0;i<size_bytes;i++) {
+				database.setByte(i + offset, bytes[i - size_bytes + 4]);
+			}
+			
+			pos += size + size_bytes;
 		}
 		
 		return pos;
@@ -78,7 +183,16 @@ public class BdfNamedList implements IBdfType
 		
 		for(Element o : elements)
 		{
-			size += 4;
+			int location = locations[o.key];
+			
+			if(location > 65535) {		// >= 2 ^ 16
+				size += 4;
+			} else if(location > 255) {	// >= 2 ^ 8
+				size += 2;
+			} else {					// < 2 ^ 8
+				size += 1;
+			}
+			
 			size += o.object.serializeSeeker(locations);
 		}
 		
@@ -229,14 +343,6 @@ public class BdfNamedList implements IBdfType
 		
 		// Return the list of keys as strings
 		return keys;
-	}
-	
-	public int getKeyLocation(String key) {
-		return lookupTable.getLocation(key.getBytes());
-	}
-	
-	public String getKeyName(int key) {
-		return new String(lookupTable.getName(key));
 	}
 	
 	public boolean contains(String key) {

@@ -2,9 +2,12 @@ package bdf.types;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 import bdf.data.BdfDatabase;
+import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
 import bdf.util.DataHelpers;
 
@@ -28,34 +31,100 @@ public class BdfReader
 	
 	public BdfReader(IBdfDatabase database)
 	{
-		if(database.size() < 4) {
+		if(database.size() == 0) {
 			initNew();
 			return;
 		}
 		
-		// Get the lookup table
-		int lookupTable_size = DataHelpers.getByteBuffer(database.getPointer(0, 4)).getInt();
-		lookupTable = new BdfLookupTable(this, database.getPointer(4, lookupTable_size));
+		int upto = 0;
+		
+		IBdfDatabase flag_ptr = database.getPointer(upto);
+		byte lookupTable_size_tag = BdfObject.getParentFlags(flag_ptr);
+		byte lookupTable_size_bytes = 0;
+		
+		switch(lookupTable_size_tag)
+		{
+		case 0:
+			lookupTable_size_bytes = 4;
+			break;
+		case 1:
+			lookupTable_size_bytes = 2;
+			break;
+		case 2:
+			lookupTable_size_bytes = 1;
+			break;
+		}
 		
 		// Get the rest of the data
-		int upto = lookupTable_size + 4;
-		int bdf_size = BdfObject.getSize(database.getPointer(upto));
-		bdf = new BdfObject(lookupTable, database.getPointer(upto, bdf_size));
+		int bdf_size = BdfObject.getSize(flag_ptr);
+		IBdfDatabase database_bdf = database.getPointer(upto, bdf_size);
+		upto += bdf_size;
+		
+		// Get the lookup table
+		ByteBuffer lookupTable_size_buff = DataHelpers.getByteBuffer(database.getPointer(upto, lookupTable_size_bytes));
+		int lookupTable_size = 0;
+		
+		switch(lookupTable_size_tag)
+		{
+		case 0:
+			lookupTable_size = lookupTable_size_buff.getInt();
+			break;
+		case 1:
+			lookupTable_size = 0xffff & lookupTable_size_buff.getShort();
+			break;
+		case 2:
+			lookupTable_size = 0xff & lookupTable_size_buff.get();
+			break;
+		}
+		
+		lookupTable = new BdfLookupTable(this, database.getPointer(lookupTable_size_bytes + upto, lookupTable_size));
+		bdf = new BdfObject(lookupTable, database_bdf);
+	}
+	
+	public static BdfReader readHumanReadable(String data)
+	{
+		BdfReader reader = new BdfReader();
+		reader.bdf = new BdfObject(reader.lookupTable, new BdfStringPointer(data.toCharArray(), 0));
+		
+		return reader;
 	}
 	
 	public BdfDatabase serialize()
 	{
-		int[] locations = lookupTable.serializeGetLocations();
+		int[] locations = new int[lookupTable.size()];
+		int[] map = lookupTable.serializeGetLocations(locations);
 		
 		int bdf_size = bdf.serializeSeeker(locations);
 		int lookupTable_size = lookupTable.serializeSeeker(locations);
-		int database_size = bdf_size + lookupTable_size + 4;
+		
+		int lookupTable_size_bytes = 0;
+		byte lookupTable_size_tag = 0;
+		
+		if(lookupTable_size > 65535) {		// >= 2 ^ 16
+			lookupTable_size_tag = 0;
+			lookupTable_size_bytes = 4;
+		} else if(lookupTable_size > 255) {	// >= 2 ^ 8
+			lookupTable_size_tag = 1;
+			lookupTable_size_bytes = 2;
+		} else {							// < 2 ^ 8
+			lookupTable_size_tag = 2;
+			lookupTable_size_bytes = 1;
+		}
+		
+		int upto = 0;
+		int database_size = bdf_size + lookupTable_size + lookupTable_size_bytes;
 		BdfDatabase database = new BdfDatabase(database_size);
 		
-		database.setBytes(0, DataHelpers.serializeInt(lookupTable_size));
+		bdf.serialize(database.getPointer(upto, bdf_size), locations, map, lookupTable_size_tag);
+		upto += bdf_size;
 		
-		lookupTable.serialize(database.getPointer(4, lookupTable_size), locations);
-		bdf.serialize(database.getPointer(4 + lookupTable_size, database_size), locations);
+		byte[] bytes = DataHelpers.serializeInt(lookupTable_size);
+		
+		for(int i=0;i<lookupTable_size_bytes;i++) {
+			database.setByte(i + upto, bytes[i - lookupTable_size_bytes + 4]);
+		}
+		
+		lookupTable.serialize(database.getPointer(upto + lookupTable_size_bytes, lookupTable_size), locations, map, (byte)0);
 		
 		return database;
 	}
@@ -97,5 +166,15 @@ public class BdfReader
 	
 	public void serializeHumanReadable(OutputStream stream) throws IOException {
 		serializeHumanReadable(stream, new BdfIndent("", ""));
+	}
+	
+	public static BdfReader fromHumanReadable(IBdfDatabase data)
+	{
+		BdfReader reader = new BdfReader();
+		BdfObject bdf = reader.getObject();
+		
+		
+		
+		return reader;
 	}
 }
