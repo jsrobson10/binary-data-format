@@ -419,6 +419,10 @@ public class BdfObject implements IBdfType
 		}
 	}
 	
+	public byte getType() {
+		return type;
+	}
+	
 	private boolean shouldStoreSize(byte b) {
 		return b > 7;
 	}
@@ -509,7 +513,7 @@ public class BdfObject implements IBdfType
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database, int[] locations, int[] map, byte parent_flags)
+	public int serialize(IBdfDatabase database, int[] locations, byte parent_flags)
 	{
 		int size = last_seek;
 		boolean storeSize = shouldStoreSize(type);
@@ -538,11 +542,11 @@ public class BdfObject implements IBdfType
 		switch(type)
 		{
 		case BdfTypes.ARRAY:
-			size = ((BdfArray)object).serialize(database.getPointer(offset), locations, map, (byte)0) + offset;
+			size = ((BdfArray)object).serialize(database.getPointer(offset), locations, (byte)0) + offset;
 			break;
 			
 		case BdfTypes.NAMED_LIST:
-			size = ((BdfNamedList)object).serialize(database.getPointer(offset), locations, map, (byte)0) + offset;
+			size = ((BdfNamedList)object).serialize(database.getPointer(offset), locations, (byte)0) + offset;
 			break;
 			
 		case BdfTypes.STRING:

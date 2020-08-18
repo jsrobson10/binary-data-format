@@ -91,8 +91,7 @@ public class BdfReader
 	
 	public BdfDatabase serialize()
 	{
-		int[] locations = new int[lookupTable.size()];
-		int[] map = lookupTable.serializeGetLocations(locations);
+		int[] locations = lookupTable.serializeGetLocations();
 		
 		int bdf_size = bdf.serializeSeeker(locations);
 		int lookupTable_size = lookupTable.serializeSeeker(locations);
@@ -115,7 +114,7 @@ public class BdfReader
 		int database_size = bdf_size + lookupTable_size + lookupTable_size_bytes;
 		BdfDatabase database = new BdfDatabase(database_size);
 		
-		bdf.serialize(database.getPointer(upto, bdf_size), locations, map, lookupTable_size_tag);
+		bdf.serialize(database.getPointer(upto, bdf_size), locations, lookupTable_size_tag);
 		upto += bdf_size;
 		
 		byte[] bytes = DataHelpers.serializeInt(lookupTable_size);
@@ -124,7 +123,7 @@ public class BdfReader
 			database.setByte(i + upto, bytes[i - lookupTable_size_bytes + 4]);
 		}
 		
-		lookupTable.serialize(database.getPointer(upto + lookupTable_size_bytes, lookupTable_size), locations, map, (byte)0);
+		lookupTable.serialize(database.getPointer(upto + lookupTable_size_bytes, lookupTable_size), locations, (byte)0);
 		
 		return database;
 	}
@@ -166,15 +165,5 @@ public class BdfReader
 	
 	public void serializeHumanReadable(OutputStream stream) throws IOException {
 		serializeHumanReadable(stream, new BdfIndent("", ""));
-	}
-	
-	public static BdfReader fromHumanReadable(IBdfDatabase data)
-	{
-		BdfReader reader = new BdfReader();
-		BdfObject bdf = reader.getObject();
-		
-		
-		
-		return reader;
 	}
 }

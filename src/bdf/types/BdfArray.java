@@ -59,7 +59,7 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		this.elements = new ArrayList<BdfObject>(size);
 		
 		for(int i=0;i<size;i++) {
-			this.elements.set(i, new BdfObject(lookupTable));
+			this.elements.add(new BdfObject(lookupTable));
 		}
 	}
 	
@@ -101,12 +101,12 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database, int[] locations, int[] map, byte flags)
+	public int serialize(IBdfDatabase database, int[] locations, byte flags)
 	{
 		int pos = 0;
 		
 		for(BdfObject o : elements) {
-			pos += o.serialize(database.getPointer(pos), locations, map, (byte)0);
+			pos += o.serialize(database.getPointer(pos), locations, (byte)0);
 		}
 		
 		return pos;

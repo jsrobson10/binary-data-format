@@ -55,13 +55,19 @@ class BdfLookupTable implements IBdfType
 	}
 
 	@Override
-	public int serialize(IBdfDatabase database, int[] locations, int[] map, byte flags)
+	public int serialize(IBdfDatabase database, int[] locations, byte flags)
 	{
 		int upto = 0;
 		
-		for(int i=0;i<map.length;i++)
+		for(int i=0;i<locations.length;i++)
 		{
-			byte[] key = keys.get(map[i]);
+			int loc = locations[i];
+			
+			if(loc == -1) {
+				continue;
+			}
+			
+			byte[] key = keys.get(i);
 			
 			database.setBytes(key, upto + 1);
 			database.setByte(upto, (byte)key.length);
@@ -78,10 +84,12 @@ class BdfLookupTable implements IBdfType
 	{
 		int size = 0;
 		
-		for(int i=0;i<keys.size();i++)
+		for(int i=0;i<locations.length;i++)
 		{
 			// Skip this key if the location is unset (the key has been culled)
-			if(locations[i] == -1) {
+			int loc = locations[i];
+			
+			if(loc == -1) {
 				continue;
 			}
 			
@@ -92,53 +100,9 @@ class BdfLookupTable implements IBdfType
 		return size;
 	}
 	
-	// Bubble sort
-	private int[] sortLocations(int[] locations, int[] uses, int[] map)
+	public int[] serializeGetLocations()
 	{
-		int[] map_copy = new int[map.length];
-		
-		for(int i=0;i<map.length;i++) {
-			map_copy[i] = map[i];
-		}
-		
-		for(int i=0; i < map.length; i++)
-		{
-			boolean changed = false;
-			
-			for(int j=0; j < map.length - i - 1; j++)
-			{
-				int loc_0 = map[j];
-				int loc_1 = map[j + 1];
-				
-				// Swap the index at j+1 and j in locations and uses
-				if(uses[loc_1] > uses[loc_0])
-				{
-					int v_l = locations[loc_0];
-					locations[loc_0] = locations[loc_1];
-					locations[loc_1] = v_l;
-					
-					int v_u = uses[loc_0];
-					uses[loc_0] = uses[loc_1];
-					uses[loc_1] = v_u;
-					
-					int v_m = map_copy[j];
-					map_copy[j] = map_copy[j+1];
-					map_copy[j+1] = v_m;
-					
-					changed = true;
-				}
-			}
-			
-			if(!changed) {
-				return map_copy;
-			}
-		}
-		
-		return map_copy;
-	}
-	
-	public int[] serializeGetLocations(int[] locations)
-	{
+		int[] locations = new int[keys.size()];
 		int[] uses = new int[keys.size()];
 		int next = 0;
 		
@@ -153,19 +117,8 @@ class BdfLookupTable implements IBdfType
 				locations[i] = -1;
 			}
 		}
-		
-		int[] map = new int[next];
-		next = 0;
-		
-		for(int i=0;i<locations.length;i++)
-		{
-			if(locations[i] != -1) {
-				map[next] = i;
-				next += 1;
-			}
-		}
-		
-		return sortLocations(locations, uses, map);
+
+		return locations;
 	}
 
 	@Override

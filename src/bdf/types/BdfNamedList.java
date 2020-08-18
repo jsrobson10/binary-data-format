@@ -140,13 +140,14 @@ public class BdfNamedList implements IBdfType
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database, int[] locations, int[] map, byte flags)
+	public int serialize(IBdfDatabase database, int[] locations, byte flags)
 	{
 		int pos = 0;
 		
 		for(Element o : elements)
 		{
 			int location = locations[o.key];
+			
 			byte size_bytes_tag;
 			byte size_bytes;
 			
@@ -161,7 +162,7 @@ public class BdfNamedList implements IBdfType
 				size_bytes = 1;
 			}
 			
-			int size = o.object.serialize(database.getPointer(pos), locations, map, size_bytes_tag);
+			int size = o.object.serialize(database.getPointer(pos), locations, size_bytes_tag);
 			int offset = pos + size;
 			
 			byte[] bytes = DataHelpers.serializeInt(location);
