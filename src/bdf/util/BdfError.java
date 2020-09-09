@@ -8,10 +8,16 @@ public class BdfError extends RuntimeException
 	private static final String[] ERRORS = {
 			"Syntax error",
 			"End of file",
+			"Unescaped comment",
+			"Unescaped string",
+			"Number format error",
 	};
 	
 	public static final int ERROR_SYNTAX = 0;
 	public static final int ERROR_END_OF_FILE = 1;
+	public static final int ERROR_UNESCAPED_COMMENT = 2;
+	public static final int ERROR_UNESCAPED_STRING = 3;
+	public static final int ERROR_NUMBER = 4;
 	
 	public static BdfError createError(int errorID, BdfStringPointer ptr)
 	{
@@ -33,13 +39,7 @@ public class BdfError extends RuntimeException
 				continue;
 			}
 			
-			if(array[i] == '\t') {
-				at = at / 4 * 4 + 4;
-			}
-		
-			else {
-				at += 1;
-			}
+			at += 1;
 		}
 		
 		int line_size = 0;
@@ -47,15 +47,15 @@ public class BdfError extends RuntimeException
 		
 		for(int i=start_of_line;i<array.length;i++)
 		{
-			if(i == array.length - 1) {
-				break;
-			}
-			
 			if(array[i] == '\n') {
 				break;
 			}
 			
 			line_size += 1;
+			
+			if(i == array.length - 1) {
+				break;
+			}
 			
 			if(i < location)
 			{
@@ -86,11 +86,17 @@ public class BdfError extends RuntimeException
 		BdfError bdf_error = new BdfError(message);
 		
 		bdf_error.error_short = error_short;
+		bdf_error.type = errorID;
 		
 		return bdf_error;
 	}
 	
 	private String error_short;
+	private int type;
+	
+	public int getType() {
+		return type;
+	}
 	
 	public String getErrorShort() {
 		return error_short;

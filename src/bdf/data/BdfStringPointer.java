@@ -7,6 +7,11 @@ public class BdfStringPointer
 	char[] data;
 	int offset;
 	
+	public BdfStringPointer(char[] data, int offset) {
+		this.data = data;
+		this.offset = offset;
+	}
+	
 	public BdfStringPointer getPointer(int offset) {
 		return new BdfStringPointer(data, this.offset + offset);
 	}
@@ -45,11 +50,6 @@ public class BdfStringPointer
 	public char[] getCharArray(int length) {
 		return getCharArray(0, length);
 	}
-	
-	public BdfStringPointer(char[] data, int offset) {
-		this.data = data;
-		this.offset = offset;
-	}
 
 	public char getChar(int i) {
 		return data[offset + i];
@@ -61,7 +61,7 @@ public class BdfStringPointer
 
 	public void ignoreBlanks()
 	{
-		while(true)
+		for(;;)
 		{
 			if(offset >= data.length) {
 				throw BdfError.createError(BdfError.ERROR_END_OF_FILE, this);
@@ -69,7 +69,54 @@ public class BdfStringPointer
 			
 			char c = getChar();
 			
-			if(!(c == '\n' || c == '\t' || c == ' ')) {
+			// Comments
+			if(c == '/' && offset < data.length)
+			{
+				char c2 = getChar(1);
+				
+				// Line comment
+				if(c2 == '/')
+				{
+					for(;;)
+					{
+						if(offset + 1 >= data.length) {
+							break;
+						}
+						
+						increment();
+						c = getChar();
+						
+						if(c == '\n') {
+							break;
+						}
+					}
+				}
+				
+				// Multi-line comment
+				else if(c2 == '*')
+				{
+					for(;;)
+					{
+						if(offset + 1 >= data.length) {
+							throw BdfError.createError(BdfError.ERROR_UNESCAPED_COMMENT, getPointer(-1));
+						}
+						
+						increment();
+						c = getChar();
+						
+						if(c == '*' && offset < data.length && getChar(1) == '/') {
+							increment();
+							break;
+						}
+					}
+				}
+				
+				else {
+					return;
+				}
+			}
+			
+			else if(!(c == '\n' || c == '\t' || c == ' ')) {
 				return;
 			}
 			
@@ -87,10 +134,10 @@ public class BdfStringPointer
 		increment();
 		String str = "";
 		
-		while(true)
+		for(;;)
 		{
 			if(offset >= data.length) {
-				throw BdfError.createError(BdfError.ERROR_END_OF_FILE, this);
+				throw BdfError.createError(BdfError.ERROR_UNESCAPED_STRING, this);
 			}
 			
 			char c = getChar();
@@ -98,27 +145,35 @@ public class BdfStringPointer
 			// Check for back slashes
 			if(c == '\\')
 			{
-				increment(1);
+				increment();
 				c = getChar();
 				
 				switch(c)
 				{
 				case 'n':
 					str += "\n";
+					increment();
 					break;
 				case 't':
 					str += "\t";
+					increment();
 					break;
 				case '"':
 					str += "\"";
+					increment();
 					break;
 				case '\\':
 					str += "\\";
+					increment();
+					break;
+				case '\n':
+					str += "\n";
+					increment();
 					break;
 				case 'u': // \u0000
 				{
 					if(offset + 5 >= data.length) {
-						throw BdfError.createError(BdfError.ERROR_END_OF_FILE, getPointer(1));
+						throw BdfError.createError(BdfError.ERROR_UNESCAPED_STRING, getPointer(1));
 					}
 					
 					char[] hex = getCharArray(1, 4);
@@ -154,6 +209,10 @@ public class BdfStringPointer
 				}
 			}
 			
+			else if(c == '\n') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, this);
+			}
+			
 			else if(c == '"') {
 				increment();
 				break;
@@ -170,16 +229,12 @@ public class BdfStringPointer
 	
 	public boolean isNext(String check)
 	{
-		if(check.length() + offset >= data.length) {
+		if(check.length() + offset > data.length) {
 			return false;
 		}
 		
 		for(int i=0;i<check.length();i++)
 		{
-			if(offset + i >= data.length) {
-				throw BdfError.createError(BdfError.ERROR_END_OF_FILE, this);
-			}
-			
 			char c = getChar(i);
 			c = (char)((c >= 'A' && c <= 'Z') ? (c + 32) : c);
 			
@@ -218,6 +273,8 @@ public class BdfStringPointer
 			case 'E':
 				continue;
 			case '.':
+				continue;
+			case '-':
 				continue;
 			}
 			

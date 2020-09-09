@@ -1,11 +1,7 @@
 package bdf.types;
 
-import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 
 import bdf.data.IBdfDatabase;
 import bdf.util.DataHelpers;
@@ -31,6 +27,10 @@ class BdfLookupTable implements IBdfType
 			int key_size = 0xff & database.getByte(i);
 			i += 1;
 			
+			if(i + key_size > database.size()) {
+				return;
+			}
+			
 			keys.add(database.getBytes(i, key_size));
 			
 			i += key_size;
@@ -48,6 +48,10 @@ class BdfLookupTable implements IBdfType
 		
 		keys.add(name);
 		return keys.size() - 1;
+	}
+	
+	boolean hasLocation(int location) {
+		return location >= 0 && location < keys.size();
 	}
 	
 	byte[] getName(int location) {

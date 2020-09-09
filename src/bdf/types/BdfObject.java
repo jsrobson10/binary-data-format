@@ -1,6 +1,5 @@
 package bdf.types;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -10,7 +9,6 @@ import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
 import bdf.util.BdfError;
 import bdf.util.DataHelpers;
-import tests.Tests;
 
 public class BdfObject implements IBdfType
 {
@@ -42,10 +40,25 @@ public class BdfObject implements IBdfType
 			database = database.getPointer(size_bytes);
 		}
 		
+		if(database.size() < 0) {
+			database = new BdfDatabase(0);
+			type = BdfTypes.UNDEFINED;
+			return;
+		}
+		
 		// Set the object variable if there is an object specified
-		if(type == BdfTypes.STRING) object = database.getString();
-		if(type == BdfTypes.ARRAY) object = new BdfArray(lookupTable, database);
-		if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(lookupTable, database);
+		switch(type)
+		{
+		case BdfTypes.STRING:
+			object = database.getString();
+			break;
+		case BdfTypes.ARRAY:
+			object = new BdfArray(lookupTable, database);
+			break;
+		case BdfTypes.NAMED_LIST:
+			object = new BdfNamedList(lookupTable, database);
+			break;
+		}
 		
 		if(object != null) {
 			database = null;
@@ -73,6 +86,7 @@ public class BdfObject implements IBdfType
 			return;
 		}
 		
+		boolean isDecimalArray = false;
 		boolean isPrimitiveArray = false;
 		byte type = 0;
 		
@@ -104,11 +118,13 @@ public class BdfObject implements IBdfType
 		else if(ptr.isNext("double")) {
 			type = BdfTypes.ARRAY_DOUBLE;
 			isPrimitiveArray = true;
+			isDecimalArray = true;
 		}
 		
 		else if(ptr.isNext("float")) {
 			type = BdfTypes.ARRAY_FLOAT;
 			isPrimitiveArray = true;
+			isDecimalArray = true;
 		}
 		
 		// Deserialize a primitive array
@@ -131,7 +147,17 @@ public class BdfObject implements IBdfType
 			
 			for(;;)
 			{
-				if(ptr2.isNext("true") || ptr2.isNext("false")) {
+				if(ptr2.getChar() == ')') {
+					ptr2.increment();
+					break;
+				}
+				
+				if(
+						ptr2.isNext("true") || ptr2.isNext("false") ||
+						ptr2.isNext("infinityd") || ptr2.isNext("-infinityd") ||
+						ptr2.isNext("infinityf") || ptr2.isNext("-infinityf") ||
+						ptr2.isNext("nand") || ptr2.isNext("nanf"))
+				{
 					size += 1;
 				}
 				
@@ -139,9 +165,17 @@ public class BdfObject implements IBdfType
 				{
 					for(;;)
 					{
+						if(ptr2.getDataLocation() >= ptr2.getDataLength()) {
+							throw BdfError.createError(BdfError.ERROR_END_OF_FILE, ptr2.getPointer(-1));
+						}
+						
 						c = ptr2.getChar();
 						
-						if(c >= '0' && c <= '9' || c == '.' || c == 'e' || c == 'E' || c == '-') {
+						if(c >= 'a' && c <= 'z') {
+							c -= 32;
+						}
+						
+						if(c >= '0' && c <= '9' || ((c == '.' || c == 'E') && isDecimalArray) || c == '+' || c == '-') {
 							ptr2.increment();
 							continue;
 						}
@@ -198,6 +232,11 @@ public class BdfObject implements IBdfType
 			
 			for(int i=0;;i++)
 			{
+				if(ptr.getChar() == ')') {
+					ptr.increment();
+					break;
+				}
+				
 				if(ptr.isNext("true"))
 				{
 					if(type != BdfTypes.ARRAY_BOOLEAN) {
@@ -218,6 +257,66 @@ public class BdfObject implements IBdfType
 					a[i] = false;
 				}
 				
+				else if(ptr.isNext("infinityd"))
+				{
+					if(type != BdfTypes.ARRAY_DOUBLE) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					double[] a = (double[]) array;
+					a[i] = Double.POSITIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("-infinityd"))
+				{
+					if(type != BdfTypes.ARRAY_DOUBLE) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					double[] a = (double[]) array;
+					a[i] = Double.NEGATIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("nand"))
+				{
+					if(type != BdfTypes.ARRAY_DOUBLE) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					double[] a = (double[]) array;
+					a[i] = Double.NaN;
+				}
+				
+				else if(ptr.isNext("infinityf"))
+				{
+					if(type != BdfTypes.ARRAY_FLOAT) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					float[] a = (float[]) array;
+					a[i] = Float.POSITIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("-infinityf"))
+				{
+					if(type != BdfTypes.ARRAY_FLOAT) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					float[] a = (float[]) array;
+					a[i] = Float.NEGATIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("nanf"))
+				{
+					if(type != BdfTypes.ARRAY_FLOAT) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					float[] a = (float[]) array;
+					a[i] = Float.NaN;
+				}
+				
 				else
 				{
 					// Parse a number
@@ -227,11 +326,15 @@ public class BdfObject implements IBdfType
 					{
 						c = ptr.getChar();
 						
+						if(c >= 'a' && c <= 'z') {
+							c -= 32;
+						}
+						
 						if(ptr.getDataLocation() > ptr.getDataLength()) {
 							throw BdfError.createError(BdfError.ERROR_END_OF_FILE, ptr);
 						}
 						
-						if(c >= '0' && c <= '9' || c == '.' || c == 'e' || c == 'E' || c == '-') {
+						if(c >= '0' && c <= '9' || ((c == '.' || c == 'E') && isDecimalArray) || c == '+' || c == '-') {
 							ptr.increment();
 							number += c;
 							continue;
@@ -372,50 +475,103 @@ public class BdfObject implements IBdfType
 			return;
 		}
 		
+		if(ptr.isNext("infinityd")) {
+			setDouble(Double.POSITIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("-infinityd")) {
+			setDouble(Double.NEGATIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("nand")) {
+			setDouble(Double.NaN);
+			return;
+		}
+		
+		if(ptr.isNext("infinityf")) {
+			setFloat(Float.POSITIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("-infinityf")) {
+			setFloat(Float.NEGATIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("nanf")) {
+			setFloat(Float.NaN);
+			return;
+		}
+		
 		if(ptr.isNext("undefined")) {
+			database = new BdfDatabase(0);
 			return;
 		}
 		
 		// Parse a number
 		String number = "";
+		boolean isDecimal = false;
 		
 		for(;;)
 		{
 			c = ptr.getChar();
 			ptr.increment();
 			
+			if(c >= 'a' && c <= 'z') {
+				c -= 32;
+			}
+			
 			if(ptr.getDataLocation() > ptr.getDataLength()) {
 				throw BdfError.createError(BdfError.ERROR_END_OF_FILE, ptr);
 			}
 			
-			if(c >= '0' && c <= '9' || c == '.' || c == 'e' || c == 'E' || c == '-') {
+			if(c == '.' || c == 'E') {
+				isDecimal = true;
 				number += c;
 				continue;
 			}
 			
-			switch(c)
-			{
-			case 'D':
-				setDouble(Double.parseDouble(number));
-				return;
-			case 'F':
-				setFloat(Float.parseFloat(number));
-				return;
-			case 'B':
-				setByte(Byte.parseByte(number));
-				return;
-			case 'S':
-				setShort(Short.parseShort(number));
-				return;
-			case 'I':
-				setInteger(Integer.parseInt(number));
-				return;
-			case 'L':
-				setLong(Long.parseLong(number));
-				return;
+			if(c >= '0' && c <= '9' || c == '+' || c == '-') {
+				number += c;
+				continue;
 			}
 			
-			throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			if(isDecimal && !(c == 'D' || c == 'F')) {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-1));
+			}
+			
+			try
+			{
+				switch(c)
+				{
+				case 'D':
+					setDouble(Double.parseDouble(number));
+					return;
+				case 'F':
+					setFloat(Float.parseFloat(number));
+					return;
+				case 'B':
+					setByte(Byte.parseByte(number));
+					return;
+				case 'S':
+					setShort(Short.parseShort(number));
+					return;
+				case 'I':
+					setInteger(Integer.parseInt(number));
+					return;
+				case 'L':
+					setLong(Long.parseLong(number));
+					return;
+				default:
+					throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+				}
+			}
+			
+			catch(NumberFormatException e) {
+				throw BdfError.createError(BdfError.ERROR_NUMBER, ptr.getPointer(-number.length()));
+			}
 		}
 	}
 	
@@ -673,7 +829,7 @@ public class BdfObject implements IBdfType
 			break;
 			
 		case BdfTypes.ARRAY_INTEGER: {
-			stream.write(("int(" + calcIndent(indent, it)).getBytes());
+			stream.write("int(".getBytes());
 			int[] array = this.getIntegerArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Integer.toString(array[i]) + "I").getBytes());
@@ -684,7 +840,7 @@ public class BdfObject implements IBdfType
 		}
 			
 		case BdfTypes.ARRAY_BOOLEAN: {
-			stream.write(("bool(" + calcIndent(indent, it)).getBytes());
+			stream.write("bool(".getBytes());
 			boolean[] array = this.getBooleanArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + (array[i] ? "true" : "false")).getBytes());
@@ -695,7 +851,7 @@ public class BdfObject implements IBdfType
 		}
 			
 		case BdfTypes.ARRAY_SHORT: {
-			stream.write(("short(" + calcIndent(indent, it)).getBytes());
+			stream.write("short(".getBytes());
 			short[] array = this.getShortArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Short.toString(array[i]) + "S").getBytes());
@@ -706,7 +862,7 @@ public class BdfObject implements IBdfType
 		}
 			
 		case BdfTypes.ARRAY_LONG: {
-			stream.write(("long(" + calcIndent(indent, it)).getBytes());
+			stream.write("long(".getBytes());
 			long[] array = this.getLongArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Long.toString(array[i]) + "L").getBytes());
@@ -717,7 +873,7 @@ public class BdfObject implements IBdfType
 		}
 		
 		case BdfTypes.ARRAY_BYTE: {
-			stream.write(("byte(" + calcIndent(indent, it)).getBytes());
+			stream.write("byte(".getBytes());
 			byte[] array = this.getByteArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Byte.toString(array[i]) + "B").getBytes());
@@ -728,7 +884,7 @@ public class BdfObject implements IBdfType
 		}
 		
 		case BdfTypes.ARRAY_DOUBLE: {
-			stream.write(("double(" + calcIndent(indent, it)).getBytes());
+			stream.write("double(".getBytes());
 			double[] array = this.getDoubleArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Double.toString(array[i]) + "D").getBytes());
@@ -739,7 +895,7 @@ public class BdfObject implements IBdfType
 		}
 		
 		case BdfTypes.ARRAY_FLOAT: {
-			stream.write(("float(" + calcIndent(indent, it)).getBytes());
+			stream.write("float(".getBytes());
 			float[] array = this.getFloatArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Float.toString(array[i]) + "F").getBytes());
@@ -1063,7 +1219,6 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject setString(String value) {
 		this.type = BdfTypes.STRING;
-		this.database = new BdfDatabase(value.getBytes());
 		this.object = value;
 		return this;
 	}

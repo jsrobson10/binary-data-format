@@ -8,16 +8,13 @@ import java.util.Iterator;
 import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
 import bdf.util.BdfError;
-import bdf.util.DataHelpers;
 
 public class BdfArray implements IBdfType, Iterable<BdfObject>
 {
 	protected ArrayList<BdfObject> elements;
-	protected BdfLookupTable lookupTable;
 	
 	BdfArray(BdfLookupTable lookupTable, BdfStringPointer ptr)
 	{
-		this.lookupTable = lookupTable;
 		this.elements = new ArrayList<BdfObject>();
 		
 		ptr.increment();
@@ -55,7 +52,6 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	
 	BdfArray(BdfLookupTable lookupTable, int size)
 	{
-		this.lookupTable = lookupTable;
 		this.elements = new ArrayList<BdfObject>(size);
 		
 		for(int i=0;i<size;i++) {
@@ -65,7 +61,6 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 	
 	BdfArray(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
-		this.lookupTable = lookupTable;
 		this.elements = new ArrayList<BdfObject>();
 		
 		// Create an iterator value to loop over the data
@@ -76,6 +71,10 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		{
 			// Get the size of the object
 			int size = BdfObject.getSize(data.getPointer(i));
+			
+			if(size <= 0 || i + size > data.size()) {
+				return;
+			}
 			
 			// Get the object
 			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, size));

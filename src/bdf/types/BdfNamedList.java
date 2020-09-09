@@ -3,7 +3,6 @@ package bdf.types;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import bdf.data.BdfStringPointer;
@@ -94,6 +93,11 @@ public class BdfNamedList implements IBdfType
 			IBdfDatabase flag_ptr = data.getPointer(i);
 			int object_size = BdfObject.getSize(flag_ptr);
 			byte key_size_bytes = BdfObject.getParentFlags(flag_ptr);
+			
+			if(object_size <= 0 || i + object_size >= data.size()) {
+				return;
+			}
+			
 			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, object_size));
 			i += object_size;
 			
@@ -125,6 +129,10 @@ public class BdfNamedList implements IBdfType
 			case 0:
 				key = key_buff.getInt();
 				break;
+			}
+			
+			if(!lookupTable.hasLocation(key)) {
+				return;
 			}
 			
 			i += key_size;
