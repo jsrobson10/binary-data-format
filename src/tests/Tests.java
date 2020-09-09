@@ -1,67 +1,56 @@
 package tests;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 
-import bdf.data.BdfDatabase;
-import bdf.file.BdfFileManager;
-import bdf.types.BdfArray;
-import bdf.types.BdfIndent;
-import bdf.types.BdfNamedList;
-import bdf.types.BdfObject;
+import bdf.data.IBdfDatabase;
+import bdf.types.BdfReader;
 
-public class Tests {
-
-	public static void main(String[] args) throws InterruptedException, IOException
+public class Tests
+{
+	public static void displayHex(IBdfDatabase db)
 	{
-		/*
-		BdfObject bdf = new BdfObject();
-		BdfNamedList nl = bdf.getNamedList();
+		char[] hex_chars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 		
-		byte[] bytes = new byte[1024*1024*1024];
-		for(int i=0;i<bytes.length;i++) {
-			bytes[i] = (byte)0;
+		System.out.print("Size: " + db.size() + ", Hex: ");
+		
+		for(int i=0;i<db.size();i++)
+		{
+			int b = db.getByte(i);
+			if(b < 0) b += 128;
+			
+			System.out.print(hex_chars[b / 16]);
+			System.out.print(hex_chars[b % 16]);
+			System.out.print(' ');
 		}
 		
-		for(int i=0;i<1000;i++) {
-			nl = nl.get("next").getNamedList();
+		System.out.println();
+	}
+	
+	public static void main(String[] args) throws IOException
+	{
+		@SuppressWarnings("resource")
+		FileInputStream rand = new FileInputStream("/dev/urandom");
+		byte[] buffer = new byte[100];
+		
+		long start = System.currentTimeMillis();
+		long done = 0;
+		int i = 0;
+		
+		for(;;)
+		{
+			if(System.currentTimeMillis() - start > 1000) {
+				System.out.println("" + i + ": " + done);
+				start += 1000;
+				done = 0;
+				i += 1;
+			}
+			
+			done += 1;
+			
+			rand.read(buffer);
+			new BdfReader(buffer);
 		}
-		
-		nl.get("next").setByteArray(bytes);
-		
-		BdfDatabase data = bdf.serialize();
-		
-		FileOutputStream file = new FileOutputStream("./database.bdf");
-		data.writeToStream(file);
-		*/
-		
-		
-		BdfObject bdf = new BdfObject();
-		BdfArray a = bdf.getArray();
-		
-		byte[] bytes = new byte[1024*1024*1024/2];
-		for(int i=0;i<bytes.length;i++) {
-			bytes[i] = (byte)0;
-		}
-		
-		for(int i=0;i<10;i++) {
-			BdfArray a2 = new BdfArray();
-			a.add(BdfObject.withArray(a2));
-			a = a2;
-		}
-		
-		a.add(BdfObject.withByteArray(bytes));
-		
-		BdfDatabase data = bdf.serialize();
-		
-		FileOutputStream file = new FileOutputStream("./database.bdf");
-		data.writeToStream(file);
-		
-		
-		//BdfFileManager bdf = new BdfFileManager("./database.bdf");
-		//System.out.println("Loaded bdf");
-		//Thread.sleep(5000);
 	}
 
 }

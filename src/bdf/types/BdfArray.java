@@ -5,18 +5,64 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
-import bdf.util.DataHelpers;
+import bdf.util.BdfError;
 
 public class BdfArray implements IBdfType, Iterable<BdfObject>
 {
-	protected ArrayList<BdfObject> elements = new ArrayList<BdfObject>();
+	protected ArrayList<BdfObject> elements;
 	
-	public BdfArray() {
+	BdfArray(BdfLookupTable lookupTable, BdfStringPointer ptr)
+	{
+		this.elements = new ArrayList<BdfObject>();
+		
+		ptr.increment();
+		
+		// [..., ...]
+		while(true)
+		{
+			ptr.ignoreBlanks();
+			
+			if(ptr.getChar() == ']') {
+				ptr.increment();
+				return;
+			}
+			
+			add(new BdfObject(lookupTable, ptr));
+			
+			// There should be a comma after this
+			ptr.ignoreBlanks();
+			
+			char c = ptr.getChar();
+			
+			if(c == ']') {
+				ptr.increment();
+				return;
+			}
+			
+			if(c != ',') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			}
+			
+			ptr.increment();
+			ptr.ignoreBlanks();
+		}
 	}
 	
-	public BdfArray(IBdfDatabase data)
+	BdfArray(BdfLookupTable lookupTable, int size)
 	{
+		this.elements = new ArrayList<BdfObject>(size);
+		
+		for(int i=0;i<size;i++) {
+			this.elements.add(new BdfObject(lookupTable));
+		}
+	}
+	
+	BdfArray(BdfLookupTable lookupTable, IBdfDatabase data)
+	{
+		this.elements = new ArrayList<BdfObject>();
+		
 		// Create an iterator value to loop over the data
 		int i = 0;
 		
@@ -24,44 +70,42 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		while(i < data.size())
 		{
 			// Get the size of the object
-			int size = DataHelpers.getByteBuffer(data.getPointer(i, Integer.BYTES)).getInt();
+			int size = BdfObject.getSize(data.getPointer(i));
+			
+			if(size <= 0 || i + size > data.size()) {
+				return;
+			}
 			
 			// Get the object
-			BdfObject object = new BdfObject(data.getPointer((i+Integer.BYTES), size));
+			BdfObject object = new BdfObject(lookupTable, data.getPointer(i, size));
 			
 			// Add the object to the elements list
 			elements.add(object);
 			
 			// Increase the iterator by the amount of bytes
-			i += Integer.BYTES+size;
+			i += size;
 		}
 	}
 	
 	@Override
-	public int serializeSeeker()
+	public int serializeSeeker(int[] locations)
 	{
 		int size = 0;
 		
 		for(BdfObject o : elements) {
-			size += o.serializeSeeker();
-			size += 4;
+			size += o.serializeSeeker(locations);
 		}
 		
 		return size;
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database)
+	public int serialize(IBdfDatabase database, int[] locations, byte flags)
 	{
 		int pos = 0;
 		
-		for(BdfObject o : elements)
-		{
-			int size = o.serialize(database.getPointer(pos + 4));
-			database.setBytes(pos, DataHelpers.serializeInt(size));
-			
-			pos += size;
-			pos += 4;
+		for(BdfObject o : elements) {
+			pos += o.serialize(database.getPointer(pos), locations, (byte)0);
 		}
 		
 		return pos;
@@ -119,9 +163,10 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 		return this;
 	}
 	
-	public BdfArray remove(int index) {
+	public BdfObject remove(int index) {
+		BdfObject bdf = elements.get(index);
 		elements.remove(index);
-		return this;
+		return bdf;
 	}
 	
 	public BdfArray remove(BdfObject bdf) {
@@ -172,6 +217,13 @@ public class BdfArray implements IBdfType, Iterable<BdfObject>
 				elements.remove(i);
 			}
 		};
+	}
+	
+	@Override
+	public void getLocationUses(int[] locations) {
+		for(BdfObject element : elements) {
+			element.getLocationUses(locations);
+		}
 	}
 
 }

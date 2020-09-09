@@ -1,111 +1,776 @@
 package bdf.types;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 import bdf.data.BdfDatabase;
+import bdf.data.BdfStringPointer;
 import bdf.data.IBdfDatabase;
+import bdf.util.BdfError;
 import bdf.util.DataHelpers;
 
 public class BdfObject implements IBdfType
 {
 	protected IBdfDatabase database = null;
 	protected Object object = null;
-	protected byte type = BdfTypes.EMPTY;
+	protected byte type = BdfTypes.UNDEFINED;
+	protected BdfLookupTable lookupTable;
+	protected int last_seek;
 	
-	public static BdfObject getNew() {
-		return new BdfObject();
+	BdfObject(BdfLookupTable lookupTable) {
+		this.lookupTable = lookupTable;
+		this.database = new BdfDatabase(0);
 	}
 	
-	public BdfObject(byte[] data) {
-		this(new BdfDatabase(data));
-	}
-	
-	public BdfObject(IBdfDatabase data)
+	BdfObject(BdfLookupTable lookupTable, IBdfDatabase data)
 	{
-		// Is the database length greater than 1
-		if(data.size() > 1)
-		{
-			// Get the type and database values
-			type = data.getByte(0);
-			database = data.getPointer(1, data.size() - 1);
-			
-			// Set the object variable if there is an object specified
-			if(type == BdfTypes.STRING) object = database.getString();
-			if(type == BdfTypes.ARRAY) object = new BdfArray(database);
-			if(type == BdfTypes.NAMED_LIST) object = new BdfNamedList(database);
-			
-			if(object != null) {
-				database = null;
-			}
+		this.lookupTable = lookupTable;
+		
+		// Get the type and database values
+		int flags = 0xff & data.getByte(0);
+		type = (byte)(flags % 18);
+		flags = (byte)((flags - type) / 18);
+		int size_bytes = getSizeBytes(flags % 3);
+		
+		database = data.getPointer(1);
+		
+		// Skip the size bytes if size is stored
+		if(shouldStoreSize(type)) {
+			database = database.getPointer(size_bytes);
 		}
 		
-		else
-		{
-			// Create a new database
+		if(database.size() < 0) {
 			database = new BdfDatabase(0);
+			type = BdfTypes.UNDEFINED;
+			return;
+		}
+		
+		// Set the object variable if there is an object specified
+		switch(type)
+		{
+		case BdfTypes.STRING:
+			object = database.getString();
+			break;
+		case BdfTypes.ARRAY:
+			object = new BdfArray(lookupTable, database);
+			break;
+		case BdfTypes.NAMED_LIST:
+			object = new BdfNamedList(lookupTable, database);
+			break;
+		}
+		
+		if(object != null) {
+			database = null;
+		}
+	}
+	
+	BdfObject(BdfLookupTable lookupTable, BdfStringPointer ptr)
+	{
+		this.lookupTable = lookupTable;
+		
+		char c = ptr.getChar();
+		
+		if(c == '{') {
+			setNamedList(new BdfNamedList(lookupTable, ptr));
+			return;
+		}
+		
+		if(c == '[') {
+			setArray(new BdfArray(lookupTable, ptr));
+			return;
+		}
+		
+		if(c == '"') {
+			setString(ptr.getQuotedString());
+			return;
+		}
+		
+		boolean isDecimalArray = false;
+		boolean isPrimitiveArray = false;
+		byte type = 0;
+		
+		if(ptr.isNext("int")) {
+			type = BdfTypes.ARRAY_INTEGER;
+			isPrimitiveArray = true;
+		}
+		
+		else if(ptr.isNext("long")) {
+			type = BdfTypes.ARRAY_LONG;
+			isPrimitiveArray = true;
+		}
+		
+		else if(ptr.isNext("byte")) {
+			type = BdfTypes.ARRAY_BYTE;
+			isPrimitiveArray = true;
+		}
+		
+		else if(ptr.isNext("short")) {
+			type = BdfTypes.ARRAY_SHORT;
+			isPrimitiveArray = true;
+		}
+		
+		else if(ptr.isNext("bool")) {
+			type = BdfTypes.ARRAY_BOOLEAN;
+			isPrimitiveArray = true;
+		}
+		
+		else if(ptr.isNext("double")) {
+			type = BdfTypes.ARRAY_DOUBLE;
+			isPrimitiveArray = true;
+			isDecimalArray = true;
+		}
+		
+		else if(ptr.isNext("float")) {
+			type = BdfTypes.ARRAY_FLOAT;
+			isPrimitiveArray = true;
+			isDecimalArray = true;
+		}
+		
+		// Deserialize a primitive array
+		if(isPrimitiveArray)
+		{
+			ptr.ignoreBlanks();
+			
+			if(ptr.getChar() != '(') {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+			}
+			
+			ptr.increment();
+			ptr.ignoreBlanks();
+			
+			// Get the size of the array
+			int size = 0;
+			
+			// Get a copy of the pointer
+			BdfStringPointer ptr2 = ptr.getPointer(0);
+			
+			for(;;)
+			{
+				if(ptr2.getChar() == ')') {
+					ptr2.increment();
+					break;
+				}
+				
+				if(
+						ptr2.isNext("true") || ptr2.isNext("false") ||
+						ptr2.isNext("infinityd") || ptr2.isNext("-infinityd") ||
+						ptr2.isNext("infinityf") || ptr2.isNext("-infinityf") ||
+						ptr2.isNext("nand") || ptr2.isNext("nanf"))
+				{
+					size += 1;
+				}
+				
+				else
+				{
+					for(;;)
+					{
+						if(ptr2.getDataLocation() >= ptr2.getDataLength()) {
+							throw BdfError.createError(BdfError.ERROR_END_OF_FILE, ptr2.getPointer(-1));
+						}
+						
+						c = ptr2.getChar();
+						
+						if(c >= 'a' && c <= 'z') {
+							c -= 32;
+						}
+						
+						if(c >= '0' && c <= '9' || ((c == '.' || c == 'E') && isDecimalArray) || c == '+' || c == '-') {
+							ptr2.increment();
+							continue;
+						}
+						
+						if(c == 'B' || c == 'S' || c == 'I' || c == 'L' || c == 'D' || c == 'F') {
+							ptr2.increment();
+							size += 1;
+							break;
+						}
+						
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr2);
+					}
+				}
+				
+				ptr2.ignoreBlanks();
+				
+				if(ptr2.getChar() == ',') {
+					ptr2.increment();
+					ptr2.ignoreBlanks();
+				}
+				
+				if(ptr2.getChar() == ')') {
+					ptr2.increment();
+					break;
+				}
+			}
+			
+			Object array = null;
+			
+			switch(type)
+			{
+			case BdfTypes.ARRAY_BOOLEAN:
+				array = new boolean[size];
+				break;
+			case BdfTypes.ARRAY_BYTE:
+				array = new byte[size];
+				break;
+			case BdfTypes.ARRAY_DOUBLE:
+				array = new double[size];
+				break;
+			case BdfTypes.ARRAY_FLOAT:
+				array = new float[size];
+				break;
+			case BdfTypes.ARRAY_INTEGER:
+				array = new int[size];
+				break;
+			case BdfTypes.ARRAY_LONG:
+				array = new long[size];
+				break;
+			case BdfTypes.ARRAY_SHORT:
+				array = new short[size];
+				break;
+			}
+			
+			for(int i=0;;i++)
+			{
+				if(ptr.getChar() == ')') {
+					ptr.increment();
+					break;
+				}
+				
+				if(ptr.isNext("true"))
+				{
+					if(type != BdfTypes.ARRAY_BOOLEAN) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					boolean[] a = (boolean[]) array;
+					a[i] = true;
+				}
+				
+				else if(ptr.isNext("false"))
+				{
+					if(type != BdfTypes.ARRAY_BOOLEAN) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					boolean[] a = (boolean[]) array;
+					a[i] = false;
+				}
+				
+				else if(ptr.isNext("infinityd"))
+				{
+					if(type != BdfTypes.ARRAY_DOUBLE) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					double[] a = (double[]) array;
+					a[i] = Double.POSITIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("-infinityd"))
+				{
+					if(type != BdfTypes.ARRAY_DOUBLE) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					double[] a = (double[]) array;
+					a[i] = Double.NEGATIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("nand"))
+				{
+					if(type != BdfTypes.ARRAY_DOUBLE) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					double[] a = (double[]) array;
+					a[i] = Double.NaN;
+				}
+				
+				else if(ptr.isNext("infinityf"))
+				{
+					if(type != BdfTypes.ARRAY_FLOAT) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					float[] a = (float[]) array;
+					a[i] = Float.POSITIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("-infinityf"))
+				{
+					if(type != BdfTypes.ARRAY_FLOAT) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					float[] a = (float[]) array;
+					a[i] = Float.NEGATIVE_INFINITY;
+				}
+				
+				else if(ptr.isNext("nanf"))
+				{
+					if(type != BdfTypes.ARRAY_FLOAT) {
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+					}
+					
+					float[] a = (float[]) array;
+					a[i] = Float.NaN;
+				}
+				
+				else
+				{
+					// Parse a number
+					String number = "";
+					
+					for(;;)
+					{
+						c = ptr.getChar();
+						
+						if(c >= 'a' && c <= 'z') {
+							c -= 32;
+						}
+						
+						if(ptr.getDataLocation() > ptr.getDataLength()) {
+							throw BdfError.createError(BdfError.ERROR_END_OF_FILE, ptr);
+						}
+						
+						if(c >= '0' && c <= '9' || ((c == '.' || c == 'E') && isDecimalArray) || c == '+' || c == '-') {
+							ptr.increment();
+							number += c;
+							continue;
+						}
+						
+						switch(c)
+						{
+							case 'D':
+							{
+								if(type != BdfTypes.ARRAY_DOUBLE)
+									throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+								
+								double[] a = (double[]) array;
+								a[i] = Double.parseDouble(number);
+								
+								ptr.increment();
+								break;
+							}
+							
+							case 'F': 
+							{
+								if(type != BdfTypes.ARRAY_FLOAT)
+									throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+								
+								float[] a = (float[]) array;
+								a[i] = Float.parseFloat(number);
+								
+								ptr.increment();
+								break;
+							}
+							
+							case 'I': 
+							{
+								if(type != BdfTypes.ARRAY_INTEGER)
+									throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+								
+								int[] a = (int[]) array;
+								a[i] = Integer.parseInt(number);
+								
+								ptr.increment();
+								break;
+							}
+							
+							case 'L': 
+							{
+								if(type != BdfTypes.ARRAY_LONG)
+									throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+								
+								long[] a = (long[]) array;
+								a[i] = Long.parseLong(number);
+								
+								ptr.increment();
+								break;
+							}
+							
+							case 'S': 
+							{
+								if(type != BdfTypes.ARRAY_SHORT)
+									throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+								
+								short[] a = (short[]) array;
+								a[i] = Short.parseShort(number);
+								
+								ptr.increment();
+								break;
+							}
+							
+							case 'B': 
+							{
+								if(type != BdfTypes.ARRAY_BYTE)
+									throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+								
+								byte[] a = (byte[]) array;
+								a[i] = Byte.parseByte(number);
+								
+								ptr.increment();
+								break;
+							}
+							
+							default:
+								throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						}
+						
+						break;
+					}
+				}
+				
+				// int (420I, 23I  )
+				
+				ptr.ignoreBlanks();
+				
+				if(ptr.getChar() == ',') {
+					ptr.increment();
+					ptr.ignoreBlanks();
+				}
+				
+				if(ptr.getChar() == ')') {
+					ptr.increment();
+					break;
+				}
+			}
+			
+			switch(type)
+			{
+			case BdfTypes.ARRAY_BOOLEAN:
+				setBooleanArray((boolean[])array);
+				break;
+			case BdfTypes.ARRAY_BYTE:
+				setByteArray((byte[])array);
+				break;
+			case BdfTypes.ARRAY_DOUBLE:
+				setDoubleArray((double[])array);
+				break;
+			case BdfTypes.ARRAY_FLOAT:
+				setFloatArray((float[])array);
+				break;
+			case BdfTypes.ARRAY_INTEGER:
+				setIntegerArray((int[])array);
+				break;
+			case BdfTypes.ARRAY_LONG:
+				setLongArray((long[])array);
+				break;
+			case BdfTypes.ARRAY_SHORT:
+				setShortArray((short[])array);
+				break;
+			}
+			
+			return;
+		}
+		
+		if(ptr.isNext("true")) {
+			setBoolean(true);
+			return;
+		}
+		
+		if(ptr.isNext("false")) {
+			setBoolean(false);
+			return;
+		}
+		
+		if(ptr.isNext("infinityd")) {
+			setDouble(Double.POSITIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("-infinityd")) {
+			setDouble(Double.NEGATIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("nand")) {
+			setDouble(Double.NaN);
+			return;
+		}
+		
+		if(ptr.isNext("infinityf")) {
+			setFloat(Float.POSITIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("-infinityf")) {
+			setFloat(Float.NEGATIVE_INFINITY);
+			return;
+		}
+		
+		if(ptr.isNext("nanf")) {
+			setFloat(Float.NaN);
+			return;
+		}
+		
+		if(ptr.isNext("undefined")) {
+			database = new BdfDatabase(0);
+			return;
+		}
+		
+		// Parse a number
+		String number = "";
+		boolean isDecimal = false;
+		
+		for(;;)
+		{
+			c = ptr.getChar();
+			ptr.increment();
+			
+			if(c >= 'a' && c <= 'z') {
+				c -= 32;
+			}
+			
+			if(ptr.getDataLocation() > ptr.getDataLength()) {
+				throw BdfError.createError(BdfError.ERROR_END_OF_FILE, ptr);
+			}
+			
+			if(c == '.' || c == 'E') {
+				isDecimal = true;
+				number += c;
+				continue;
+			}
+			
+			if(c >= '0' && c <= '9' || c == '+' || c == '-') {
+				number += c;
+				continue;
+			}
+			
+			if(isDecimal && !(c == 'D' || c == 'F')) {
+				throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-1));
+			}
+			
+			try
+			{
+				switch(c)
+				{
+				case 'D':
+					setDouble(Double.parseDouble(number));
+					return;
+				case 'F':
+					setFloat(Float.parseFloat(number));
+					return;
+				case 'B':
+					setByte(Byte.parseByte(number));
+					return;
+				case 'S':
+					setShort(Short.parseShort(number));
+					return;
+				case 'I':
+					setInteger(Integer.parseInt(number));
+					return;
+				case 'L':
+					setLong(Long.parseLong(number));
+					return;
+				default:
+					throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+				}
+			}
+			
+			catch(NumberFormatException e) {
+				throw BdfError.createError(BdfError.ERROR_NUMBER, ptr.getPointer(-number.length()));
+			}
+		}
+	}
+	
+	public byte getType() {
+		return type;
+	}
+	
+	private boolean shouldStoreSize(byte b) {
+		return b > 7;
+	}
+	
+	static private int getSizeBytes(int size_bytes_tag)
+	{
+		switch(size_bytes_tag)
+		{
+		case 0: return 4;
+		case 1: return 2;
+		case 2: return 1;
+		default: return 4;
+		}
+	}
+	
+	static byte getParentFlags(IBdfDatabase db)
+	{
+		int flags = 0xff & db.getByte(0);
+		
+		byte type = (byte)(flags % 18);
+		flags = (byte)((flags - type) / 18);
+		
+		byte size_bytes = (byte)(flags % 3);
+		flags = (byte)((flags - size_bytes) / 3);
+		
+		byte parent_flags = (byte)(flags % 3);
+		flags = (byte)((flags - parent_flags) / 3);
+		
+		return parent_flags;
+	}
+	
+	static int getSize(IBdfDatabase db)
+	{
+		int flags = 0xff & db.getByte(0);
+		byte type = (byte)(flags % 18);
+		flags = (byte)((flags - type) / 18);
+		
+		int size_bytes = getSizeBytes(flags % 3);
+		int size = getSize(type);
+		
+		if(size != -1) {
+			return size;
+		}
+		
+		ByteBuffer size_buff = DataHelpers.getByteBuffer(db.getPointer(1, size_bytes));
+		
+		switch(size_bytes)
+		{
+		case 4: return size_buff.getInt();
+		case 2: return (0xffff & size_buff.getShort());
+		case 1: return (0xff & size_buff.get());
+		}
+		
+		return 0;
+	}
+	
+	static int getSize(byte type)
+	{
+		switch(type)
+		{
+		case BdfTypes.BOOLEAN:
+			return 2;
+		case BdfTypes.BYTE:
+			return 2;
+		case BdfTypes.DOUBLE:
+			return 9;
+		case BdfTypes.FLOAT:
+			return 5;
+		case BdfTypes.INTEGER:
+			return 5;
+		case BdfTypes.LONG:
+			return 9;
+		case BdfTypes.SHORT:
+			return 3;
+		case BdfTypes.UNDEFINED:
+			return 1;
+		default:
+			return -1;
 		}
 	}
 	
 	@Override
-	public int serialize(IBdfDatabase database)
+	public void getLocationUses(int[] locations)
 	{
-		int size;
+		if(type == BdfTypes.NAMED_LIST || type == BdfTypes.ARRAY) {
+			((IBdfType)object).getLocationUses(locations);
+		}
+	}
+	
+	@Override
+	public int serialize(IBdfDatabase database, int[] locations, byte parent_flags)
+	{
+		int size = last_seek;
+		boolean storeSize = shouldStoreSize(type);
 		
-		IBdfDatabase db = database.getPointer(1);
+		byte size_bytes_tag = 0;
+		int size_bytes = 0;
+		
+		if(storeSize)
+		{
+			if(size > 65535) {		// >= 2 ^ 16
+				size_bytes_tag = 0;
+				size_bytes = 4;
+			} else if(size > 255) {	// >= 2 ^ 8
+				size_bytes_tag = 1;
+				size_bytes = 2;
+			} else {				// < 2 ^ 8
+				size_bytes_tag = 2;
+				size_bytes = 1;
+			}
+		}
+		
+		int offset = size_bytes + 1;
+		byte flags = (byte)(type + (size_bytes_tag * 18) + (parent_flags * 3 * 18));
 		
 		// Objects
 		switch(type)
 		{
 		case BdfTypes.ARRAY:
-			size = ((BdfArray)object).serialize(db) + 1;
+			size = ((BdfArray)object).serialize(database.getPointer(offset), locations, (byte)0) + offset;
 			break;
 			
 		case BdfTypes.NAMED_LIST:
-			size = ((BdfNamedList)object).serialize(db) + 1;
+			size = ((BdfNamedList)object).serialize(database.getPointer(offset), locations, (byte)0) + offset;
 			break;
 			
 		case BdfTypes.STRING:
-			String str = (String)object;
-			size = str.length() + 1;
-			db.setBytes(0, str.getBytes());
+			byte[] str = ((String)object).getBytes();
+			size = str.length + offset;
+			database.setBytes(str, offset);
 			break;
 			
 		default:
-			size = this.database.size() + 1;
-			db.setBytes(0, this.database.getBytes());
+			size = this.database.size() + offset;
+			database.setBytes(this.database, offset);
 			break;
 		}
 		
-		database.setByte(0, type);
+		database.setByte(0, flags);
+		
+		if(storeSize)
+		{
+			byte[] bytes = DataHelpers.serializeInt(size);
+			
+			for(int i=0;i<size_bytes;i++) {
+				database.setByte(i + 1, bytes[i - size_bytes + 4]);
+			}
+		}
 		
 		return size;
 	}
 
 	@Override
-	public int serializeSeeker()
+	public int serializeSeeker(int[] locations)
 	{
+		int size = getSize(type);
+		
+		if(size != -1) {
+			last_seek = size;
+			return size;
+		}
+		
 		// Objects
 		switch(type)
 		{
-		case BdfTypes.ARRAY: return ((BdfArray)object).serializeSeeker() + 1;
-		case BdfTypes.NAMED_LIST: return ((BdfNamedList)object).serializeSeeker() + 1;
-		case BdfTypes.STRING: return ((String)object).length() + 1;
+		case BdfTypes.ARRAY:
+			size = ((BdfArray)object).serializeSeeker(locations) + 1;
+			break;
+		case BdfTypes.NAMED_LIST:
+			size = ((BdfNamedList)object).serializeSeeker(locations) + 1;
+			break;
+		case BdfTypes.STRING:
+			size = ((String)object).getBytes().length + 1;
+			break;
+		default:
+			size = database.size() + 1;
 		}
 		
-		// Anything else
-		return database.size() + 1;
-	}
-	
-	public BdfDatabase serialize()
-	{
-		BdfDatabase database = new BdfDatabase(serializeSeeker());
+		int size_bytes;
 		
-		serialize(database);
+		if(size > 65531) {			// >= 2 ^ 16
+			size_bytes = 4;
+		} else if(size > 253) {		// >= 2 ^ 8
+			size_bytes = 2;
+		} else {					// < 2 ^ 8
+			size_bytes = 1;
+		}
 		
-		return database;
+		size += size_bytes;
+		last_seek = size;
+		
+		return size;
 	}
 	
 	private String calcIndent(BdfIndent indent, int it) {
@@ -114,36 +779,6 @@ public class BdfObject implements IBdfType
 			t += indent.indent;
 		}
 		return t;
-	}
-	
-	public String serializeHumanReadable(BdfIndent indent) {
-		return serializeHumanReadable(indent, 0);
-	}
-	
-	public String serializeHumanReadable() {
-		return serializeHumanReadable(new BdfIndent("", ""), 0);
-	}
-	
-	public String serializeHumanReadable(BdfIndent indent, int it)
-	{
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		
-		try {
-			serializeHumanReadable(stream, indent, it);
-			return stream.toString();
-		}
-		
-		catch(IOException e) {
-			return "undefined";
-		}
-	}
-	
-	public void serializeHumanReadable(OutputStream stream, BdfIndent indent) throws IOException {
-		serializeHumanReadable(stream, indent, 0);
-	}
-	
-	public void serializeHumanReadable(OutputStream stream) throws IOException {
-		serializeHumanReadable(stream, new BdfIndent("", ""), 0);
 	}
 	
 	public void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException
@@ -194,77 +829,77 @@ public class BdfObject implements IBdfType
 			break;
 			
 		case BdfTypes.ARRAY_INTEGER: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("int(".getBytes());
 			int[] array = this.getIntegerArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Integer.toString(array[i]) + "I").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
 		}
 			
 		case BdfTypes.ARRAY_BOOLEAN: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("bool(".getBytes());
 			boolean[] array = this.getBooleanArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + (array[i] ? "true" : "false")).getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
 		}
 			
 		case BdfTypes.ARRAY_SHORT: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("short(".getBytes());
 			short[] array = this.getShortArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Short.toString(array[i]) + "S").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
 		}
 			
 		case BdfTypes.ARRAY_LONG: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("long(".getBytes());
 			long[] array = this.getLongArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Long.toString(array[i]) + "L").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
 		}
 		
 		case BdfTypes.ARRAY_BYTE: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("byte(".getBytes());
 			byte[] array = this.getByteArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Byte.toString(array[i]) + "B").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
 		}
 		
 		case BdfTypes.ARRAY_DOUBLE: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("double(".getBytes());
 			double[] array = this.getDoubleArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Double.toString(array[i]) + "D").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
 		}
 		
 		case BdfTypes.ARRAY_FLOAT: {
-			stream.write(("(" + calcIndent(indent, it)).getBytes());
+			stream.write("float(".getBytes());
 			float[] array = this.getFloatArray();
 			for(int i=0;i<array.length;i++) {
 				stream.write((indent.breaker + calcIndent(indent, it) + Float.toString(array[i]) + "F").getBytes());
-				if(i == array.length - 1) stream.write(", ".getBytes());
+				if(i != array.length - 1) stream.write(", ".getBytes());
 			}
 			stream.write((indent.breaker + calcIndent(indent, it - 1) + ")").getBytes());
 			break;
@@ -280,12 +915,36 @@ public class BdfObject implements IBdfType
 		}
 	}
 	
-	public BdfObject() {
-		database = new BdfDatabase(0);
+	public BdfObject setAutoInt(long number)
+	{
+		if(number > 2147483648L || number <= -2147483648L) {
+			setLong(number);
+		} else if(number > 32768 || number <= -32768) {
+			setInteger((int)number);
+		} else if(number > 128 || number <= -128) {
+			setShort((short)number);
+		} else {
+			setByte((byte)number);
+		}
+		
+		return this;
 	}
 	
-	public byte getType() {
-		return this.type;
+	public long getAutoInt()
+	{
+		switch(type)
+		{
+		case BdfTypes.BYTE:
+			return getByte();
+		case BdfTypes.SHORT:
+			return getShort();
+		case BdfTypes.INTEGER:
+			return getInteger();
+		case BdfTypes.LONG:
+			return getLong();
+		default:
+			return 0;
+		}
 	}
 	
 	// Primitives
@@ -492,7 +1151,7 @@ public class BdfObject implements IBdfType
 	public BdfArray getArray()
 	{
 		if(this.type != BdfTypes.ARRAY)
-			this.setArray();
+			setArray(newArray());
 		
 		return (BdfArray)object;
 	}
@@ -500,7 +1159,7 @@ public class BdfObject implements IBdfType
 	public BdfNamedList getNamedList()
 	{
 		if(this.type != BdfTypes.NAMED_LIST)
-			this.setNamedList();
+			setNamedList(newNamedList());
 		
 		return (BdfNamedList)object;
 	}
@@ -560,7 +1219,6 @@ public class BdfObject implements IBdfType
 	
 	public BdfObject setString(String value) {
 		this.type = BdfTypes.STRING;
-		this.database = new BdfDatabase(value.getBytes());
 		this.object = value;
 		return this;
 	}
@@ -577,12 +1235,28 @@ public class BdfObject implements IBdfType
 		return this;
 	}
 	
-	public BdfObject setArray() {
-		return this.setArray(new BdfArray());
+	public BdfObject newObject() {
+		return new BdfObject(lookupTable);
 	}
 	
-	public BdfObject setNamedList() {
-		return this.setNamedList(new BdfNamedList());
+	public BdfNamedList newNamedList() {
+		return new BdfNamedList(lookupTable);
+	}
+	
+	public BdfArray newArray() {
+		return new BdfArray(lookupTable, 0);
+	}
+	
+	public BdfArray newArray(int size) {
+		return new BdfArray(lookupTable, size);
+	}
+	
+	public int getKeyLocation(String key) {
+		return lookupTable.getLocation(key.getBytes());
+	}
+	
+	public String getKeyName(int key) {
+		return new String(lookupTable.getName(key));
 	}
 	
 	public BdfObject setBooleanArray(boolean[] value) {
@@ -653,85 +1327,6 @@ public class BdfObject implements IBdfType
 		}
 		database = DataHelpers.getDatabase(b);
 		return this;
-	}
-	
-	// Primitives
-	public static BdfObject withInteger(int v) {
-		return (new BdfObject()).setInteger(v);
-	}
-	
-	public static BdfObject withByte(byte v) {
-		return (new BdfObject()).setByte(v);
-	}
-	
-	public static BdfObject withBoolean(boolean v) {
-		return (new BdfObject()).setBoolean(v);
-	}
-	
-	public static BdfObject withFloat(float v) {
-		return (new BdfObject()).setFloat(v);
-	}
-	
-	public static BdfObject withDouble(double v) {
-		return (new BdfObject()).setDouble(v);
-	}
-	
-	public static BdfObject withLong(long v) {
-		return (new BdfObject()).setLong(v);
-	}
-	
-	public static BdfObject withShort(short v) {
-		return (new BdfObject()).setShort(v);
-	}
-	
-	// Arrays
-	public static BdfObject withIntegerArray(int[] v) {
-		return (new BdfObject()).setIntegerArray(v);
-	}
-	
-	public static BdfObject withByteArray(byte[] v) {
-		return (new BdfObject()).setByteArray(v);
-	}
-	
-	public static BdfObject withBooleanArray(boolean[] v) {
-		return (new BdfObject()).setBooleanArray(v);
-	}
-	
-	public static BdfObject withFloatArray(float[] v) {
-		return (new BdfObject()).setFloatArray(v);
-	}
-	
-	public static BdfObject withDoubleArray(double[] v) {
-		return (new BdfObject()).setDoubleArray(v);
-	}
-	
-	public static BdfObject withLongArray(long[] v) {
-		return (new BdfObject()).setLongArray(v);
-	}
-	
-	public static BdfObject withShortArray(short[] v) {
-		return (new BdfObject()).setShortArray(v);
-	}
-	
-	// Objects
-	public static BdfObject withString(String v) {
-		return (new BdfObject()).setString(v);
-	}
-	
-	public static BdfObject withArray(BdfArray v) {
-		return (new BdfObject()).setArray(v);
-	}
-	
-	public static BdfObject withNamedList(BdfNamedList v) {
-		return (new BdfObject()).setNamedList(v);
-	}
-
-	public static BdfObject withArray() {
-		return (new BdfObject()).setArray(new BdfArray());
-	}
-	
-	public static BdfObject withNamedList() {
-		return (new BdfObject()).setNamedList(new BdfNamedList());
 	}
 
 }

@@ -7,8 +7,9 @@ import bdf.data.IBdfDatabase;
 
 interface IBdfType
 {
-	int serialize(IBdfDatabase database);
-	int serializeSeeker();
+	void getLocationUses(int[] locations);
+	int serialize(IBdfDatabase database, int[] locations, byte flags);
+	int serializeSeeker(int[] locations);
 	
 	void serializeHumanReadable(OutputStream stream, BdfIndent indent, int it) throws IOException;
 }

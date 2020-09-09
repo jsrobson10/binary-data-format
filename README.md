@@ -8,26 +8,23 @@
 - <a href="#creating-an-object">Creating an object</a>
 - <a href="#arrays">Arrays</a>
 - <a href="#named-lists">Named lists</a>
-- <a href="#saving-classes">Saving classes</a>
-- <a href="#implementation-details">Implementation details</a>
+- <a href="#human-readable-representation">Human readable representation</a>
+- <a href="#special-notes">Special notes</a>
 
 ### Overview
 
-Binary Data Format (or BDF) is designed to store data in a tree-like binary structure,
-like Notch's NBT format, but also open source and free like JSON. The format is
-fast and allows multiple data types, it uses 32-bit integers, so BDF files can
-be fast and work well on 32-bit systems, but have a maximum size of 2 GB.
-BDF allows human readable serialization to see what is going on for debugging
-purposes, but it currently can't parse the human readable serialized string to an object.
-
+Binary Data Format (BDF) is a statically typed data representation
+format. It was made to be free, fast, compact, and seamlessly
+convertable between its human readable and binary representations.
 
 ### Languages
 
-- Java
 - <a href="https://github.com/jsrobson10/BdfCpp">C++</a>
+- Java
 
 ### Data types
 
+- Undefined
 - Boolean
 - Integer
 - Long
@@ -35,26 +32,49 @@ purposes, but it currently can't parse the human readable serialized string to a
 - Byte
 - Double
 - Float
+- Boolean Array
+- Integer Array
+- Long Array
+- Short Array
+- Byte Array
+- Double Array
+- Float Array
 - String
 - Array
 - Named List
-- Empty
 
 ### Creating an object
 
-You will need to create a new object to store any data, use a `BdfObject` instance.
-You can input serialized data into `BdfObject` via a `BdfDatabase`.
+You will need to generate a BdfObject to serialize anything,
+this can be done by first generating a BdfReader, or generating
+a new object via an existing BdfObject.
 
 ```java
 
-// New BDF object
-BdfObject bdf = new BdfObject();
+// Create a reader object
+BdfReader reader = new BdfReader();
+
+// Get the BdfObject instance
+BdfObject bdf = reader.getObject();
+
+// Generate another BdfObject instance
+BdfObject bdf_new = bdf.newObject();
 
 // Get an integer
 int v = bdf.getInteger();
 
 // Set an integer
 bdf.setInteger(5);
+
+// Set an integer with an automatic type
+bdf.setAutoInt(53);
+
+// Set a primitive array of ints
+int intArray[] = {3, 4, 5, 6};
+bdf.setIntegerArray(intArray);
+
+// Get a byte array
+byte[] byteArray = bdf.getByteArray();
 
 // Get the type of variable of the object
 int type = bdf.getType();
@@ -66,243 +86,216 @@ if(type == BdfTypes.INTEGER)
 }
 
 // Serialize the BDF object
-byte[] data = bdf.serialize().getBytes();
+byte[] data = bdf->serialize(&data, &data_size);
 
+// Load another reader object from the serialized bytes
+BdfReader reader2 = new BdfReader(data);
 
+/*
+	A reader object can be serialized to the human readable
+	representation as a string or sent over a stream
+*/
+reader2.serializeHumanReadable(System.out, new BdfIndent("\t", "\n"));
+String data_hr = reader2.serializeHumanReadable(new BdfIndent("\t", "\n"));
 
-// Load another BDF object with the serialized bytes
-BdfObject bdf2 = new BdfObject(new BdfDatabase(data));
-
-```
-
-A `BdfFileManager`
-instance can be used in the same way as a `BdfObject`, but it also needs a String parameter
-for the path of the file. The file can be written with `BdfFileManager.saveDatabase()`.
-A `BdfFileManager` is an instance of `BdfObject`, a `BdfFileManager` can be casted to
-a `BdfObject`.
-
-```java
-
-// Open a file
-BdfFileManager bdf = new BdfFileManager("file.bdf");
-
-// Save the database
-bdf.saveDatabase();
-
-// The file can be casted to a BdfObject
-BdfObject bdf2 = (BdfObject) bdf;
-
-// Bdf
-System.out.println(bdf instanceof BdfObject); // true
+// A reader object can be loaded from a human readable object
+BdfReader reader3 = new BdfReaderHuman(data_hr);
 
 ```
 
 ### Arrays
 
-Arrays can be used to store lists of information, they hold `BdfObject`.
-The array is called with `new BdfArray()`. It can hold information, get
-the size of the array with `BdfArray.size()`, remove elements with
-`BdfArray.remove(index)`, set indexes with `BdfArray.set(index, BdfObject)`,
-and add elements with `BdfArray.add(BdfObject)`. Arrays also
-have support for Iterators and are an instance of `Iterable`.
+Arrays can be used to store chunks of information, they hold instances of
+BdfObject. Arrays can also be iterated over just like any other array.
 
 ```java
 
-// New BDF Object
-BdfObject bdf = new BdfObject();
+BdfReader reader = new BdfReader();
+BdfObject bdf = reader.getObject();
 
-// New BDF Array
-BdfArray array = new BdfArray();
+// Can be created from a bdf object
+BdfArray array = bdf.newArray();
 
-// Size
+// Get the length of an array
 int size = array.size();
 
-// Remove
-array.remove(3); // Could be any number
+// Remove any index from an array
+array.remove(3);
 
-// Set - Could be any number with any object
-array.set(4, BdfObject.withString("A String"));
+// Set an object to an index of an array
+array.set(4, bdf.newObject().setString("A String"));
 
-// Add - Could be any object
-array.add(BdfObject.withByte(53));
+// Add an object to an array
+array.add(bdf.newObject().setByte((byte)53));
 
 // Set the array to the bdf object
 bdf.setArray(array);
-
-// Iterate over an array
-for(BdfObject o : array)
-{
-
-}
 
 ```
 
 ### Named lists
 
-Named lists can be used to store data under strings,
+Named lists can be used to store data under ids/strings
 to be used like variables in a program. A named list
-can be created with `new BdfNamedList()` and it
-has the ability to set with `BdfNamedList.set(String, BdfObject)`,
-remove with `BdfNamedList.remove(String)`, and check
-for a key with `BdfNamedList.contains(String)`. It also has
-features to get all the keys with `BdfNamedList.getKeys()`.
-Named lists also have Iterator support and are an instance of
-`Iterable`.
+can be created similar to an array.
 
 ```java
 
-// New bdf named list
-BdfNamedList list = new BdfNamedList();
+BdfReader reader = new BdfReader();
+BdfObject bdf = reader.getObject();
 
-// Set an element with a value
-list.set("key1", BdfObject.withInteger(5));
+// New named list
+BdfNamedList list = bdf.newNamedList();
+
+// Set an element to the named list
+list.set("key1", bdf.newObject().setInteger(5));
+
+// Use ids instead of strings for optimisation
+// if set/get is being called multiple times
+// on the same key.
+
+int key2 = bdf.getKeyLocation("key2");
+list.set(key2, bdf.newObject().setFloat(42.0F));
 
 // Get an elements value
 int v = list.get("key1").getInteger();
 
 // Check if an element exists
-boolean has_key = list.contains("key1");
+bool has_key = list.contains("key1");
 
 // Get the lists keys
-String[] keys = list.getKeys();
+int[] keys = list.getKeys();
 
 // Iterate over the lists keys
-for(String key : keys)
+for(int key : keys)
 {
-
+	// Get the keys name
+	String key_name = bdf.getKeyName(key);
 }
 
 ```
 
-### Saving classes
+### Human readable representation
 
-Classes can be saved with `BdfClassManager` and by
-implementing the `IBdfClassManager` interface,
-adding 2 functions `BdfClassLoad` and `BdfClassSave`.
-`BdfClassLoad` is for checking and loading data from
-bdf into the classes variables, while `BdfClassSave`
-is for packing pre-existing variables into bdf format.
-A BdfClassManager can be used to pass the `IBdfClassManager`
-interface into.
+A big part of binary data format is the human readable
+representation. It has a JSON-like syntax.
+This can be used with config files and to modify/view
+binaries. A big advantage to using the human readable
+representation in configuration files is its support
+for comments.
 
-A class with `IBdfClassManager` to save the data
-could look like this:
-
-```java
-
-class HelloWorld implements IBdfClassManager
-{
-	int iterator = 0;
-
-	@Override
-	public void BdfClassLoad(BdfObject bdf)
-	{
-		// Load scripts here
-		
-		// Get the named list
-		BdfNamedList nl = bdf.getNamedList();
-		
-		// Set the iterator stored in bdf
-		int iterator = nl.get("iterator").getInteger();
-	}
-	
-	@Override
-	public void BdfClassSave(BdfObject bdf)
-	{
-		// Save scripts here
-		
-		// Create a named list
-		BdfNamedList nl = new BdfNamedList();
-		
-		// Set the iterator to the named list
-		nl.set("iterator", BdfObject.withInteger(iterator));
-		
-		// Store the named list
-		bdf.setNamedList(nl);
-	}
-	
-	public void hello()
-	{
-		// Increase the iterator by 1
-		iterator++;
-		
-		// Say "Hello, World! Script executed <iterator> times!"
-		System.out.println("Hello, World! Script executed "+iterator+" times!");
-	}
-
-}
-
-```
-
-A script to manage this could look something like this:
-
-```java
+```hbdf
 
 /*
-	Get a new BdfObject instance, it could be existing,
-	or from another file, BdfArray, or BdfNamedList instance.
+	A Named List is represented
+	by an opening tag and a closing
+	tag {  }
 */
-BdfObject bdf = new BdfObject();
+{
+	/*
+		A key value pair can be stored
+		within a Named List with a string
+		property
+	*/
+	"hello": "world",
 
-// Create the HelloWorld class
-HelloWorld hello = new HelloWorld();
+	/*
+		Integers can be stored here too.
+		They have a character at the end
+		to say what type they are.
+		
+		The tag at the end can be:
+			- I: Integer - a value between -2^31 and 2^31 - 1
+			- S: Short - a value between -32768 and 32767
+			- L: Long - a value between -2^63 and 2^63 - 1
+			- B: Byte - a value between -128 and 127
+			- D: Double - has 15 decimal digits of precision
+			- F: Float - has 7 decimal digits of precision
+	*/
+	"number": 42I,
+	"byte": -23B,
+	"decimal": 73.5D,
 
-// Get a new BdfClassManager instance to deal with BDF data
-BdfClassManager manager = new BdfClassManager(hello);
+	/*
+		This is a boolean. It can
+		be true or false.
+	*/
+	"boolTest": false,
 
-// Give the manager an existing BdfObject instance
-manager.setBdf(bdf);
+	/*
+		Primitive arrays are represented
+		by a type, an opening tag, and a
+		closing tag. They are like an array
+		but they contain only 1 data type.
 
-// Load the classes bdf data
-manager.load();
+		The tag at the start can be:
+			- int
+			- short
+			- long
+			- byte
+			- double
+			- float
+			- bool
+	*/
+	"intArray": int (
+		64I, 42I, 63I,
+		22I, 96I, -12I,
+	),
 
-// Call the hello world function
-hello.hello();
+	/*
+		The double and float types support
+		Infinity, -Infinity, and NaN.
+		
+		They also support both really
+		high and really low value numbers.
+	*/
+	"doubleArray": double (
+		42.5D, -20D, 400D,
+		NaND, -InfinityD, InfinityD,
+		5.3e-200F, 4e+500F, 2.2e200F,
+	)
 
-// Save the classes bdf data
-manager.save();
+	/*
+		Arrays are enclosed by an opening
+		tag and a closing tag [   ]
+		
+		Like the Named List, it can hold
+		any data type.
+	*/
+	"people": [
+		{"name": "foo", "age": 60B},
+		{"name": "bar", "age": 21B},
+	],
+
+	// This is a single-line comment
+
+	/* This is a multi-line comment */
+}
 
 ```
 
-### Implementation details
+### Special notes
 
-All integer data types used are signed and Big Endian.
+Don't mix bdf types between different
+readers, this will cause problems.
 
-**Type (1 byte)**
-```
-0:  BOOLEAN (1 byte, 0x00 or 0x01)
-1:  INTEGER (4 bytes)
-2:  LONG    (8 bytes)
-3:  SHORT   (2 bytes)
-4:  BYTE    (1 byte)
-5:  DOUBLE  (8 bytes)
-6:  FLOAT   (4 bytes)
+```java
 
-7:  STRING
-8:  ARRAY
-9:  NAMED_LIST
+BdfReader reader1 = new BdfReader();
+BdfReader reader2 = new BdfReader();
 
-10: EMPTY   (0 bytes)
+BdfObject bdf1 = reader1.getObject();
+BdfObject bdf2 = reader2.getObject();
 
-11: ARRAY_BOOLEAN
-12: ARRAY_INTEGER
-13: ARRAY_LONG
-14: ARRAY_SHORT
-15: ARRAY_BYTE
-16: ARRAY_DOUBLE
-17: ARRAY_FLOAT
+// Don't do this
+bdf1.setNamedList(bdf2.newNamedList());
+
+// Or this
+bdf1.setArray(bdf2.newArray());
+
+// Or this
+BdfNamedList nl = bdf1.newArray();
+nl.set("illegal", bdf2.newObject().setString("action"));
+
 ```
 
-**Object**
-- Type (signed byte, 1 byte)
-- Payload (Any type, variable length)
-
-**NamedList**
-- Key size (signed int, 4 bytes)
-- Key (variable length)
-- Payload size (signed int, 4 bytes)
-- Payload (Object, variable length)
-
-**Array**
-- Payload size (signed int, 4 bytes)
-- Payload (Object, variable length)
