@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import bdf.data.IBdfDatabase;
 import bdf.types.BdfReader;
+import bdf.types.BdfReaderHuman;
 
 public class Tests
 {
@@ -29,28 +30,7 @@ public class Tests
 	
 	public static void main(String[] args) throws IOException
 	{
-		@SuppressWarnings("resource")
-		FileInputStream rand = new FileInputStream("/dev/urandom");
-		byte[] buffer = new byte[100];
-		
-		long start = System.currentTimeMillis();
-		long done = 0;
-		int i = 0;
-		
-		for(;;)
-		{
-			if(System.currentTimeMillis() - start > 1000) {
-				System.out.println("" + i + ": " + done);
-				start += 1000;
-				done = 0;
-				i += 1;
-			}
-			
-			done += 1;
-			
-			rand.read(buffer);
-			new BdfReader(buffer);
-		}
+		new BdfReaderHuman("int(NaND)");
 	}
 
 }

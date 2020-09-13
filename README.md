@@ -252,8 +252,8 @@ for comments.
 	"doubleArray": double (
 		42.5D, -20D, 400D,
 		NaND, -InfinityD, InfinityD,
-		5.3e-200F, 4e+500F, 2.2e200F,
-	)
+		5.3e-200D, 4e+120D, 2.2e200D,
+	),
 
 	/*
 		Arrays are enclosed by an opening
