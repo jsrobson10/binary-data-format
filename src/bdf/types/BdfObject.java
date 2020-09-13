@@ -240,7 +240,7 @@ public class BdfObject implements IBdfType
 				if(ptr.isNext("true"))
 				{
 					if(type != BdfTypes.ARRAY_BOOLEAN) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-4));
 					}
 					
 					boolean[] a = (boolean[]) array;
@@ -250,7 +250,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("false"))
 				{
 					if(type != BdfTypes.ARRAY_BOOLEAN) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-5));
 					}
 					
 					boolean[] a = (boolean[]) array;
@@ -260,7 +260,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("infinityd"))
 				{
 					if(type != BdfTypes.ARRAY_DOUBLE) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-9));
 					}
 					
 					double[] a = (double[]) array;
@@ -270,7 +270,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("-infinityd"))
 				{
 					if(type != BdfTypes.ARRAY_DOUBLE) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-10));
 					}
 					
 					double[] a = (double[]) array;
@@ -280,7 +280,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("nand"))
 				{
 					if(type != BdfTypes.ARRAY_DOUBLE) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-4));
 					}
 					
 					double[] a = (double[]) array;
@@ -290,7 +290,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("infinityf"))
 				{
 					if(type != BdfTypes.ARRAY_FLOAT) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-9));
 					}
 					
 					float[] a = (float[]) array;
@@ -300,7 +300,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("-infinityf"))
 				{
 					if(type != BdfTypes.ARRAY_FLOAT) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-10));
 					}
 					
 					float[] a = (float[]) array;
@@ -310,7 +310,7 @@ public class BdfObject implements IBdfType
 				else if(ptr.isNext("nanf"))
 				{
 					if(type != BdfTypes.ARRAY_FLOAT) {
-						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr);
+						throw BdfError.createError(BdfError.ERROR_SYNTAX, ptr.getPointer(-4));
 					}
 					
 					float[] a = (float[]) array;
